@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1090046355909",
+    "project_id": "sgew-2c59f",
+    "storage_bucket": "sgew-2c59f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1090046355909:android:0fe75409466780d13b03ac",
+        "android_client_info": {
+          "package_name": "com.sgew.sgew"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOTXaURVhOY8bRf6AF6WaXQsHFsdYNQ7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

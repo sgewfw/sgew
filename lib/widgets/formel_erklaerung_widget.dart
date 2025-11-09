@@ -332,7 +332,7 @@ class PreisformelWidget extends StatelessWidget {
                 child: RichText(
                   text: TextSpan(
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 16,
                       fontFamily: 'monospace',
                       color: SuewagColors.textPrimary,
                       height: 1.4,

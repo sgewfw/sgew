@@ -36,7 +36,7 @@ class FernwaermeApp extends StatelessWidget {
       // ========================================
       // APP KONFIGURATION
       // ========================================
-      title: 'Fernwärme Info',
+      title: 'SGEW',
       debugShowCheckedModeBanner: false,
 
       // ========================================

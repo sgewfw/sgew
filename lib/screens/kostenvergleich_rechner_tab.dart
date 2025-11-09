@@ -380,7 +380,8 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
             ],
           ),
           const SizedBox(height: 16),
-          Expanded(
+          SizedBox(  // Use SizedBox with calculated height
+            height: 520,  // 600 - 16 (top padding) - 16 (bottom padding) - 20 (icon row) - 16 (spacing) - 12 (buffer)
             child: KostenvergleichChartWidget(
               ergebnisse: _ergebnis!.szenarien,
             ),

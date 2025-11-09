@@ -208,7 +208,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
-            'Preisentwicklung',
+            'Indizes',
             style: SuewagTextStyles.headline2,
           ),
           Row(
@@ -227,22 +227,22 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
                     : 'Zur Chart-Ansicht',
               ),
 
-              // Refresh Button
-              IconButton(
-                icon: _isRefreshing
-                    ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-                    : const Icon(Icons.refresh),
-                onPressed: _isRefreshing ? null : _refreshData,
-                tooltip: 'Daten aktualisieren',
-              ),
+              // // Refresh Button
+              // IconButton(
+              //   icon: _isRefreshing
+              //       ? const SizedBox(
+              //     width: 20,
+              //     height: 20,
+              //     child: CircularProgressIndicator(
+              //       strokeWidth: 2,
+              //       valueColor:
+              //       AlwaysStoppedAnimation<Color>(Colors.white),
+              //     ),
+              //   )
+              //       : const Icon(Icons.refresh),
+              //   onPressed: _isRefreshing ? null : _refreshData,
+              //   tooltip: 'Daten aktualisieren',
+              // ),
 
               const SizedBox(width: 12),
 
@@ -296,61 +296,132 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
           ),
         ],
       ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.center,
-        children: DestatisConstants.verfuegbareIndizes.entries.map((entry) {
-          final indexCode = entry.key;
-          final indexName = entry.value;
-          final isVisible = _visibleIndizes.contains(indexCode);
-          final color = _getIndexColor(indexCode);
-          final icon = _getIndexIcon(indexCode);
-          final hasData = _allIndexData[indexCode]?.isNotEmpty ?? false;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
 
-          return FilterChip(
-            selected: isVisible,
-            onSelected: hasData ? (_) => _toggleIndex(indexCode) : null,
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 16,
-                  color: isVisible ? Colors.white : color,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  indexName,
-                  style: TextStyle(
-                    color: isVisible ? Colors.white : color,
-                    fontWeight:
-                    isVisible ? FontWeight.bold : FontWeight.normal,
+          if (isMobile) {
+            // Mobile: 2 Buttons pro Zeile, gleich groß
+            final buttonWidth = (constraints.maxWidth - 40) / 2;
+
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: DestatisConstants.verfuegbareIndizes.entries.map((entry) {
+                final indexCode = entry.key;
+                final isVisible = _visibleIndizes.contains(indexCode);
+                final color = _getIndexColor(indexCode);
+                final icon = _getIndexIcon(indexCode);
+                final hasData = _allIndexData[indexCode]?.isNotEmpty ?? false;
+                final label = DestatisConstants.mobileLabels[indexCode] ?? entry.value;
+
+                return SizedBox(
+                  width: buttonWidth,
+                  height: 40, // Feste Höhe für alle Buttons
+                  child: FilterChip(
+                    selected: isVisible,
+                    onSelected: hasData ? (_) => _toggleIndex(indexCode) : null,
+                    label: SizedBox(
+                      width: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            icon,
+                            size: 14,
+                            color: isVisible ? Colors.white : color,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: isVisible ? Colors.white : color,
+                                fontWeight: isVisible ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          if (!hasData)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 2),
+                              child: Icon(
+                                Icons.warning_amber_rounded,
+                                size: 12,
+                                color: isVisible ? Colors.white : SuewagColors.verkehrsorange,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    backgroundColor: Colors.white,
+                    selectedColor: color,
+                    checkmarkColor: Colors.white,
+                    side: BorderSide(color: color, width: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
-                ),
-                if (!hasData) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 14,
-                    color: isVisible
-                        ? Colors.white
-                        : SuewagColors.verkehrsorange,
+                );
+              }).toList(),
+            );
+          } else {
+            // Desktop: Alle in einer Reihe mit langen Labels
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: DestatisConstants.verfuegbareIndizes.entries.map((entry) {
+                final indexCode = entry.key;
+                final indexName = entry.value;
+                final isVisible = _visibleIndizes.contains(indexCode);
+                final color = _getIndexColor(indexCode);
+                final icon = _getIndexIcon(indexCode);
+                final hasData = _allIndexData[indexCode]?.isNotEmpty ?? false;
+
+                return FilterChip(
+                  selected: isVisible,
+                  onSelected: hasData ? (_) => _toggleIndex(indexCode) : null,
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 16,
+                        color: isVisible ? Colors.white : color,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        indexName,
+                        style: TextStyle(
+                          color: isVisible ? Colors.white : color,
+                          fontWeight: isVisible ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      if (!hasData) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 14,
+                          color: isVisible ? Colors.white : SuewagColors.verkehrsorange,
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
-            ),
-            backgroundColor: Colors.white,
-            selectedColor: color,
-            checkmarkColor: Colors.white,
-            side: BorderSide(color: color, width: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          );
-        }).toList(),
+                  backgroundColor: Colors.white,
+                  selectedColor: color,
+                  checkmarkColor: Colors.white,
+                  side: BorderSide(color: color, width: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                );
+              }).toList(),
+            );
+          }
+        },
       ),
     );
   }
-
   /// Chart Ansicht mit responsive Layout
   Widget _buildChartView() {
     // Filter nur sichtbare Indizes mit Daten
@@ -374,6 +445,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth > 1024;
+        final isMobile = constraints.maxWidth < 600;
 
         if (isDesktop) {
           // Desktop: Info-Cards links, Chart rechts
@@ -413,7 +485,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
               children: [
                 // Haupt-Chart
                 SizedBox(
-                  height: 400,
+                  height: isMobile ? 400 : 500,
                   child: IndexChartWidget(
                     indexDataMap: visibleData,
                     indexColors: colorMap,
@@ -424,9 +496,12 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
 
                 const SizedBox(height: 24),
 
-                // Statistik-Cards
+                // Statistik-Cards - einzeln für Mobile
                 ...visibleData.entries.map((entry) {
-                  return _buildStatsCard(entry.key, entry.value);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildMobileStatsCard(entry.key, entry.value),
+                  );
                 }).toList(),
               ],
             ),
@@ -435,7 +510,119 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
       },
     );
   }
+  /// Mobile Stats Card (kompakt, eine pro Zeile)
+  /// Mobile Stats Card (kompakt, eine pro Zeile)
+  /// Mobile Stats Card (kompakt, eine pro Zeile)
+  Widget _buildMobileStatsCard(String indexCode, List<IndexData> data) {
+    if (data.isEmpty) return const SizedBox.shrink();
 
+    final color = _getIndexColor(indexCode);
+    final icon = _getIndexIcon(indexCode);
+    final name = DestatisConstants.verfuegbareIndizes[indexCode] ?? indexCode;
+
+    final current = data.last;
+    final previous = data.length > 1 ? data[data.length - 2] : null;
+    final monthlyChange =
+    previous != null ? IndexData.calculateChange(previous, current) : null;
+
+    // Berechne Quartal
+    final quarter = ((current.date.month - 1) ~/ 3) + 1;
+    final quarterText = 'Q$quarter ${current.date.year}';
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color, width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Quartal Überschrift
+            Text(
+              quarterText,
+              style: SuewagTextStyles.caption.withColor(color).copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Rest wie vorher
+            Row(
+              children: [
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Name
+                Expanded(
+                  child: Text(
+                    name,
+                    style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
+                  ),
+                ),
+
+                // Wert
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      current.value.toStringAsFixed(1),
+                      style: SuewagTextStyles.numberMedium.withColor(color).copyWith(fontSize: 18),
+                    ),
+                    if (monthlyChange != null)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            monthlyChange >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                            size: 10,
+                            color: monthlyChange >= 0
+                                ? SuewagColors.erdbeerrot
+                                : SuewagColors.leuchtendgruen,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${monthlyChange >= 0 ? '+' : ''}${monthlyChange.toStringAsFixed(1)}%',
+                            style: SuewagTextStyles.caption.withColor(
+                              monthlyChange >= 0
+                                  ? SuewagColors.erdbeerrot
+                                  : SuewagColors.leuchtendgruen,
+                            ).copyWith(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+
+                // Link Button
+                IconButton(
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  onPressed: () => _openDestatisLink(indexCode),
+                  tooltip: 'Quelle',
+                  color: color,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   /// Stats Grid für Desktop (2x2)
   Widget _buildStatsGrid(Map<String, List<IndexData>> visibleData) {
     final entries = visibleData.entries.toList();
@@ -706,61 +893,99 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
           topRight: Radius.circular(12),
         ),
       ),
-      child: Row(
-        children: [
-          // Datum Spalte
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                'Monat',
-                style: SuewagTextStyles.tableHeader.withColor(
-                  SuewagColors.primary,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+
+          return Row(
+            children: [
+              // Datum Spalte
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'Monat',
+                    style: SuewagTextStyles.tableHeader.withColor(
+                      SuewagColors.primary,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          // Index Spalten
-          ...indexCodes.map((indexCode) {
-            final color = _getIndexColor(indexCode);
-            final name = DestatisConstants.kurzNamen[indexCode] ??
-                DestatisConstants.verfuegbareIndizes[indexCode] ??
-                indexCode;
+              // Index Spalten
+              ...indexCodes.map((indexCode) {
+                final color = _getIndexColor(indexCode);
+                final name = isMobile
+                    ? DestatisConstants.mobileLabels[indexCode]
+                    : DestatisConstants.kurzNamen[indexCode];
 
-            return Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        name,
-                        style: SuewagTextStyles.tableHeader.withColor(color),
-                        textAlign: TextAlign.right,
-                      ),
+                return Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: isMobile ? 8 : 12,
                     ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.open_in_new, size: 14),
-                      onPressed: () => _openDestatisLink(indexCode),
-                      tooltip: 'Destatis-Quelle',
-                      color: color,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(maxWidth: 24, maxHeight: 24),
+                    child: isMobile
+                        ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Vertikaler Text für Mobile
+                        RotatedBox(
+                          quarterTurns: -1,
+                          child: Text(
+                            name ?? indexCode,
+                            style: SuewagTextStyles.tableHeader.withColor(color).copyWith(
+                              fontSize: 11,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Link Button
+                        IconButton(
+                          icon: const Icon(Icons.open_in_new, size: 12),
+                          onPressed: () => _openDestatisLink(indexCode),
+                          tooltip: 'Quelle',
+                          color: color,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(maxWidth: 20, maxHeight: 20),
+                        ),
+                      ],
+                    )
+                        : Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name ?? indexCode,
+                            style: SuewagTextStyles.tableHeader.withColor(color),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.open_in_new, size: 14),
+                          onPressed: () => _openDestatisLink(indexCode),
+                          tooltip: 'Destatis-Quelle',
+                          color: color,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(maxWidth: 24, maxHeight: 24),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ],
+                  ),
+                );
+              }).toList(),
+            ],
+          );
+        },
       ),
     );
   }
+
   /// Öffne Destatis-Link
   Future<void> _openDestatisLink(String indexCode) async {
     try {

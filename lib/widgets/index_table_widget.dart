@@ -121,7 +121,7 @@ class IndexTableWidget extends StatelessWidget {
             flex: 2,
             child: _buildHeaderCell(
               'M Gas',
-              'Wärmepreis',
+              'Arbeitspreis',
               SuewagColors.waerme,
               'markt',
             ),

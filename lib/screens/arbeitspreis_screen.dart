@@ -220,7 +220,7 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
           });
         },
         tabs: const [
-          Tab(icon: Icon(Icons.thermostat), text: 'Wärmepreis'),
+          Tab(icon: Icon(Icons.thermostat), text: 'Arbeitspreis'),
           Tab(icon: Icon(Icons.local_fire_department), text: 'Wärme aus Gas'),
           Tab(icon: Icon(Icons.bolt), text: 'Wärme aus Strom'),
 
@@ -256,7 +256,7 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
     // Zeige Loading solange keine Daten da sind
     if (_waermepreise.isEmpty && !_isLoading) {
       return Center(
-        key: const ValueKey('waerme_loading'), // 🆕
+        key: const ValueKey('waerme_loading'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -275,9 +275,17 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
       );
     }
 
-    return WaermeTabWidget(
-      key: ValueKey('waerme_data_${_waermepreise.length}'), // 🆕
-      waermepreise: _waermepreise,
+    // 🆕 FIX: Wrap mit LayoutBuilder um Höhe zu garantieren
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          height: constraints.maxHeight, // Nutze volle verfügbare Höhe
+          child: WaermeTabWidget(
+            key: ValueKey('waerme_data_${_waermepreise.length}'),
+            waermepreise: _waermepreise,
+          ),
+        );
+      },
     );
   }
   Widget _buildGasTab() {

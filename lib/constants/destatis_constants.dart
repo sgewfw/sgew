@@ -49,7 +49,7 @@ class DestatisConstants {
   /// Variable: CC13-77
   static const String waermepreisTable = '61111-0006';
   static const String waermepreisVariable = 'CC13-77';
-  static const String waermepreisName = 'Fernwärme (Wärmepreisindex) - CC13-77';
+  static const String waermepreisName = 'Wärmepreisindex - CC13-77';
   static const String waermepreisCode = 'WAERMEPREIS';
 
   // ========================================
@@ -125,26 +125,32 @@ class DestatisConstants {
 
   /// Einheiten für Anzeige
   static const Map<String, String> einheiten = {
-    erdgasGewerbeCode: 'Index (2020=100)',
-    stromGewerbeCode: 'Index (2020=100)',
-    stromHaushalteCode: 'Index (2020=100)',
-    waermepreisCode: 'Index (2020=100)',
+    erdgasGewerbeCode: 'Index',
+    stromGewerbeCode: 'Index',
+    stromHaushalteCode: 'Index',
+    waermepreisCode: 'Index',
   };
-
+  /// Mobile Labels (kurz, 2 pro Zeile)
+  static const Map<String, String> mobileLabels = {
+    erdgasGewerbeCode: 'Erdgas GEW',
+    stromGewerbeCode: 'Strom GEW',
+    stromHaushalteCode: 'Strom HH',
+    waermepreisCode: 'WPI',
+  };
 
   /// Wird für Verbraucherpreisindex benötigt
   static const Map<String, String> tableToClassifyingVariable = {
     '61111-0006': 'CC13B1',  // Verbraucherpreisindex → COICOP
-    '61241-0006': '',         // Erzeugerpreis Erdgas → keine
-    '61241-0004': '',         // Erzeugerpreis Strom → keine
+    '61241-0006': 'GP19M6',         //  Erdgas → keine
+    '61241-0004': 'GP19M6',         // Strom → keine
   };
 
   /// Klassifizierungs-Keys für spezifische Indizes
   /// Wird benötigt um Unterkategorien zu laden
   static const Map<String, String> indexToClassifyingKey = {
-    erdgasGewerbeCode: '',
-    stromGewerbeCode: '',
-    stromHaushalteCode: '',
+    erdgasGewerbeCode: 'GP19-352222',
+    stromGewerbeCode: 'GP19-351113',
+    stromHaushalteCode: 'GP19-351112',
     waermepreisCode: 'CC13-77',  // Spezifisch für Fernwärme
   };
 

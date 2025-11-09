@@ -1,6 +1,7 @@
 // lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/suewag_colors.dart';
 import '../constants/suewag_text_styles.dart';
 import '../extensions/text_style_extensions.dart';
@@ -11,12 +12,7 @@ import 'arbeitspreis_screen.dart';
 import 'kostenvergleich_screen.dart';
 import 'admin/kostenvergleich_admin_home_screen.dart';
 
-/// Home Screen / Landing Page
-///
-/// Bietet Zugang zu den Hauptfunktionen:
-/// - Preisentwicklung (verfügbar)
-/// - § 8 Arbeitspreis (verfügbar)
-/// - Kostenvergleich (NEU - verfügbar)
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -220,9 +216,9 @@ class HomeScreen extends StatelessWidget {
             // Feature Cards
             _buildFeatureCard(
               context: context,
-              title: 'Preisentwicklung',
+              title: 'Indexentwicklung',
               description:
-              'Verfolgen Sie die Entwicklung der Energie-Indizes für Erdgas, Strom und Fernwärme',
+              'Verfolgen Sie die Entwicklung der Energie-Indizes für Erdgas, Strom sowie den Wärmepreisindex',
               icon: Icons.show_chart,
               color: SuewagColors.fasergruen,
               available: true,
@@ -241,9 +237,9 @@ class HomeScreen extends StatelessWidget {
 
             _buildFeatureCard(
               context: context,
-              title: 'Arbeitspreis',
+              title: 'Arbeitspreisentwicklung',
               description:
-              'Interaktive Visualisierung der Preisformel mit Echtzeit-Indizes',
+              'Interaktive Visualisierung unserer verwendeten Preisformel',
               icon: Icons.calculate,
               color: SuewagColors.indiablau,
               available: true,
@@ -263,9 +259,9 @@ class HomeScreen extends StatelessWidget {
             // 🆕 NEU: Kostenvergleich
             _buildFeatureCard(
               context: context,
-              title: 'Kostenvergleich Wärmeversorgung',
+              title: 'Kostenvergleich',
               description:
-              'Vergleichen Sie die Kosten verschiedener Wärmeversorgungssysteme für Ihr Einfamilienhaus',
+              'Vergleichen Sie die Kosten unserer Fernwärmelösung mit einer Wärmepumpe für ein Einfamilienhaus',
               icon: Icons.compare_arrows,
               color: SuewagColors.verkehrsorange,
               available: true,
@@ -325,17 +321,17 @@ class HomeScreen extends StatelessWidget {
                 child: const Icon(
                   Icons.thermostat,
                   size: 32,
-                  color: Colors.black,
+                  color: SuewagColors.quartzgrau100,
                 ),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+               Expanded(
                 child: Text(
                   'Willkommen',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: SuewagColors.quartzgrau100,
                   ),
                 ),
               ),
@@ -505,28 +501,41 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Diese Anwendung dient zur transparenten Darstellung der Energiepreisentwicklung. '
-                'Die Daten stammen vom Statistischen Bundesamt (Destatis) und werden stündlich aktualisiert.',
+            'Sie haben Fragen zu den gezeigten Daten?',
             style: SuewagTextStyles.bodyMedium,
           ),
-          const SizedBox(height: 16),
-          _buildInfoItem(
-            icon: Icons.update,
-            label: 'Daten-Aktualität',
-            value: 'Stündliche Updates',
+
+
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.email, color: SuewagColors.primary, size: 20),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _launchEmail('fernwaerme@suewag.de'),
+                child: Text(
+                  'fernwaerme@suewag.de',
+                  style: TextStyle(
+                    color: SuewagColors.primary,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          _buildInfoItem(
-            icon: Icons.source,
-            label: 'Datenquelle',
-            value: 'Destatis (genesis.destatis.de)',
-          ),
+
+
 
         ],
       ),
     );
   }
-
+  Future<void> _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
   Widget _buildInfoItem({
     required IconData icon,
     required String label,

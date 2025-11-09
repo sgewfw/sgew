@@ -112,7 +112,7 @@ class _KostenvergleichScreenState extends State<KostenvergleichScreen>
           Row(
             children: [
               const Text(
-                'Kostenvergleich Wärmeversorgung',
+                'Vergleich',
                 style: SuewagTextStyles.headline2,
               ),
               const SizedBox(width: 12),
@@ -181,18 +181,25 @@ class _KostenvergleichScreenState extends State<KostenvergleichScreen>
   }
 
   Widget _buildBody() {
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        KostenvergleichStandardTab(
-          stammdaten: _stammdaten!,
-          ergebnis: _ergebnis!,
-        ),
-        KostenvergleichRechnerTab(
-          stammdaten: _stammdaten!,
-          berechnungService: _berechnungService,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          height: constraints.maxHeight, // 🆕 Nutze volle verfügbare Höhe
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              KostenvergleichStandardTab(
+                stammdaten: _stammdaten!,
+                ergebnis: _ergebnis!,
+              ),
+              KostenvergleichRechnerTab(
+                stammdaten: _stammdaten!,
+                berechnungService: _berechnungService,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

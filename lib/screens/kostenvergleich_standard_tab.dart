@@ -117,26 +117,62 @@ class KostenvergleichStandardTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: SuewagColors.divider),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.bar_chart, color: SuewagColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Preisbestandteile - Wärmevollkostenpreis netto in ct/kWh',
-                style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: KostenvergleichChartWidget(
-              ergebnisse: ergebnis.szenarien,
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Prüfe ob wir in einem Container mit fester Höhe sind (Desktop)
+          final hasFixedHeight = constraints.maxHeight != double.infinity;
+
+          if (hasFixedHeight) {
+            // Desktop: Mit Expanded
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.bar_chart, color: SuewagColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Preisbestandteile - Wärmevollkostenpreis netto in ct/kWh',
+                      style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: KostenvergleichChartWidget(
+                    ergebnisse: ergebnis.szenarien,
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // Mobile: Mit fester Höhe
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.bar_chart, color: SuewagColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Preisbestandteile - Wärmevollkostenpreis netto in ct/kWh',
+                        style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 400,
+                  child: KostenvergleichChartWidget(
+                    ergebnisse: ergebnis.szenarien,
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
     );
   }
@@ -149,26 +185,60 @@ class KostenvergleichStandardTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: SuewagColors.divider),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.table_chart, color: SuewagColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Kostenübersicht',
-                style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: SingleChildScrollView(
-              child: _buildTabelle(),
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Prüfe ob wir in einem Container mit fester Höhe sind (Desktop)
+          final hasFixedHeight = constraints.maxHeight != double.infinity;
+
+          if (hasFixedHeight) {
+            // Desktop: Mit Expanded
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.table_chart, color: SuewagColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Kostenübersicht',
+                      style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: _buildTabelle(),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // Mobile: Mit fester Höhe
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.table_chart, color: SuewagColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Kostenübersicht',
+                      style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 400,
+                  child: SingleChildScrollView(
+                    child: _buildTabelle(),
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
     );
   }

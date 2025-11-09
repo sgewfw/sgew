@@ -2,7 +2,7 @@ name: sgew
 description: "SGEW"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.10.0-236.0.dev

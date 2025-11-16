@@ -3,6 +3,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../models/index_data.dart';
 import '../models/arbeitspreis_data.dart';
 import '../models/waermepreis_data.dart';
@@ -571,7 +572,7 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              '${selectedPreis.preis.toStringAsFixed(2)} ct/kWh',
+                              '${_formatGermanNumber(selectedPreis.preis, 2)} ct/kWh',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -673,9 +674,9 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
 
                   return LineTooltipItem(
                     '${preis.bezeichnung}\n'
-                        '${preis.preis.toStringAsFixed(2)} ct/kWh\n\n'
-                        'K Ø: ${b.kMittelwert.toStringAsFixed(2)}\n'
-                        'M Ø: ${b.mMittelwert.toStringAsFixed(2)}\n\n'
+                        '${_formatGermanNumber(preis.preis, 2)} ct/kWh\n\n'
+                        'K Ø: ${_formatGermanNumber(b.kMittelwert, 2)}\n'
+                        'M Ø: ${_formatGermanNumber(b.mMittelwert, 2)}\n\n'
                         '💡 Tippen für Details',
                     const TextStyle(
                       color: Colors.white,
@@ -706,7 +707,7 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
               reservedSize: 50,
               getTitlesWidget: (value, meta) {
                 return Text(
-                  '${value.toStringAsFixed(1).replaceAll('.', ',')}',
+                  _formatGermanNumber(value, 1),
                   style: SuewagTextStyles.caption.copyWith(fontSize: 9),
                 );
               },
@@ -877,6 +878,12 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
                             kColor: kColor,
                             mColor: mColor,
                             selectedBerechnungsdaten: berechnungsdaten,
+                            kIndexCode: typ == 'gas'  // ← FIX: nutze typ statt isGas
+                                ? DestatisConstants.erdgasGewerbeVariable
+                                : DestatisConstants.stromGewerbeVariable,
+                            mIndexCode: typ == 'gas'  // ← FIX: nutze typ statt isGas
+                                ? DestatisConstants.waermepreisVariable
+                                : DestatisConstants.stromHaushalteVariable,
                           ),
                         ),
                       ],
@@ -901,7 +908,11 @@ class _ArbeitspreisScreenState extends State<ArbeitspreisScreen>
       ),
     );
   }
-
+  /// Formatiere Zahl im deutschen Format
+  String _formatGermanNumber(double value, int decimals) {
+    final formatter = NumberFormat('#,##0.${'0' * decimals}', 'de_DE');
+    return formatter.format(value);
+  }
   String _formatMonth(DateTime date) {
     const months = [
       'Jan',

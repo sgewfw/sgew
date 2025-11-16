@@ -23,7 +23,6 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   firebase_storage: ^12.3.4
-
   fl_chart: ^0.70.2
 
   # ✅ NEU HINZUGEFÜGT: http für Destatis API
@@ -36,6 +35,7 @@ dependencies:
   # Charts
   syncfusion_flutter_charts: ^30.1.41
   url_launcher: ^6.3.1
+  universal_html: ^2.2.4
   # Icons
   cupertino_icons: ^1.0.8
 
@@ -46,6 +46,20 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# ========================================
+# FLUTTER LAUNCHER ICONS
+# ========================================
+flutter_launcher_icons:
+  android: false
+  ios: false
+
+  web:
+    generate: true
+    image_path: "assets/images/welle.png"
+    background_color: "#FFFFFF"
+    theme_color: "#2196F3"
 
 # ========================================
 # FLUTTER CONFIGURATION
@@ -56,5 +70,4 @@ flutter:
   # ✅ NEU HINZUGEFÜGT: Assets für .env Datei
   assets:
     - .env
-    # Falls du später ein Logo hinzufügst:
     - assets/images/logo.png

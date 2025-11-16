@@ -2,22 +2,76 @@
 
 import 'package:flutter/foundation.dart';
 
+/// Quelleninformation für jeden Wert
+class QuellenInfo {
+  final String titel;
+  final String beschreibung;
+  final String? link;
+
+  const QuellenInfo({
+    required this.titel,
+    required this.beschreibung,
+    this.link,
+  });
+
+  factory QuellenInfo.fromMap(Map<String, dynamic> map) {
+    return QuellenInfo(
+      titel: map['titel'] as String,
+      beschreibung: map['beschreibung'] as String,
+      link: map['link'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'titel': titel,
+      'beschreibung': beschreibung,
+      if (link != null) 'link': link,
+    };
+  }
+}
+
+/// Wrapper für Werte mit Quelle
+class WertMitQuelle<T> {
+  final T wert;
+  final QuellenInfo quelle;
+
+  const WertMitQuelle({
+    required this.wert,
+    required this.quelle,
+  });
+
+  factory WertMitQuelle.fromMap(
+      Map<String, dynamic> map,
+      T Function(dynamic) parseWert,
+      ) {
+    return WertMitQuelle(
+      wert: parseWert(map['wert']),
+      quelle: QuellenInfo.fromMap(map['quelle'] as Map<String, dynamic>),
+    );
+  }
+
+  Map<String, dynamic> toMap(dynamic Function(T) serializeWert) {
+    return {
+      'wert': serializeWert(wert),
+      'quelle': quelle.toMap(),
+    };
+  }
+}
+
 /// Hauptdokument für ein Jahr
 class KostenvergleichJahr {
-  final String id; // z.B. "2025"
+  final String id;
   final int jahr;
   final DateTime gueltigAb;
   final DateTime gueltigBis;
   final DateTime erstelltAm;
   final DateTime? aktualisiertAm;
-  final bool istAktiv; // Nur ein Jahr kann aktiv sein
-  final String status; // 'entwurf', 'aktiv', 'archiviert'
+  final bool istAktiv;
+  final String status;
 
-  // Allgemeine Daten
   final GrunddatenKostenvergleich grunddaten;
   final FinanzierungsDaten finanzierung;
-
-  // Die 4 Szenarien
   final Map<String, SzenarioStammdaten> szenarien;
 
   const KostenvergleichJahr({
@@ -47,10 +101,10 @@ class KostenvergleichJahr {
       istAktiv: map['istAktiv'] as bool,
       status: map['status'] as String,
       grunddaten: GrunddatenKostenvergleich.fromMap(
-          map['grunddaten'] as Map<String, dynamic>
+        map['grunddaten'] as Map<String, dynamic>,
       ),
       finanzierung: FinanzierungsDaten.fromMap(
-          map['finanzierung'] as Map<String, dynamic>
+        map['finanzierung'] as Map<String, dynamic>,
       ),
       szenarien: (map['szenarien'] as Map<String, dynamic>).map(
             (key, value) => MapEntry(
@@ -106,41 +160,58 @@ class KostenvergleichJahr {
   }
 }
 
-/// Grunddaten (Abschnitt A in Excel)
+// In lib/models/kostenvergleich_data.dart
+
+/// Grunddaten mit Quellen
 class GrunddatenKostenvergleich {
-  final double beheizteFlaeche; // m²
-  final double spezHeizenergiebedarf; // kWh/m²a
-  final double heizenergiebedarf; // kWh/a (berechnet: Fläche × spez. Bedarf)
+  final WertMitQuelle<double> beheizteFlaeche;
+  final WertMitQuelle<double> spezHeizenergiebedarf;
+  final WertMitQuelle<double> heizenergiebedarf;
+  final WertMitQuelle<double> anteilGaswaerme; // NEU
 
   const GrunddatenKostenvergleich({
     required this.beheizteFlaeche,
     required this.spezHeizenergiebedarf,
     required this.heizenergiebedarf,
+    required this.anteilGaswaerme, // NEU
   });
 
   factory GrunddatenKostenvergleich.fromMap(Map<String, dynamic> map) {
     return GrunddatenKostenvergleich(
-      beheizteFlaeche: (map['beheizteFlaeche'] as num).toDouble(),
-      spezHeizenergiebedarf: (map['spezHeizenergiebedarf'] as num).toDouble(),
-      heizenergiebedarf: (map['heizenergiebedarf'] as num).toDouble(),
+      beheizteFlaeche: WertMitQuelle.fromMap(
+        map['beheizteFlaeche'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
+      spezHeizenergiebedarf: WertMitQuelle.fromMap(
+        map['spezHeizenergiebedarf'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
+      heizenergiebedarf: WertMitQuelle.fromMap(
+        map['heizenergiebedarf'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
+      anteilGaswaerme: WertMitQuelle.fromMap( // NEU
+        map['anteilGaswaerme'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'beheizteFlaeche': beheizteFlaeche,
-      'spezHeizenergiebedarf': spezHeizenergiebedarf,
-      'heizenergiebedarf': heizenergiebedarf,
+      'beheizteFlaeche': beheizteFlaeche.toMap((v) => v),
+      'spezHeizenergiebedarf': spezHeizenergiebedarf.toMap((v) => v),
+      'heizenergiebedarf': heizenergiebedarf.toMap((v) => v),
+      'anteilGaswaerme': anteilGaswaerme.toMap((v) => v), // NEU
     };
   }
 }
-
-/// Finanzierungsdaten (Zinsen, Förderung)
+/// Finanzierungsdaten mit Quellen
 class FinanzierungsDaten {
-  final double zinssatz; // % (z.B. 3.546)
-  final int laufzeitJahre; // Jahre (z.B. 20)
-  final double foerderungBEG; // Quote 0-1 (z.B. 0.30 = 30%)
-  final double foerderungBEW; // Quote 0-1 (z.B. 0.30 = 30%)
+  final WertMitQuelle<double> zinssatz;
+  final WertMitQuelle<int> laufzeitJahre;
+  final WertMitQuelle<double> foerderungBEG;
+  final WertMitQuelle<double> foerderungBEW;
 
   const FinanzierungsDaten({
     required this.zinssatz,
@@ -151,38 +222,45 @@ class FinanzierungsDaten {
 
   factory FinanzierungsDaten.fromMap(Map<String, dynamic> map) {
     return FinanzierungsDaten(
-      zinssatz: (map['zinssatz'] as num).toDouble(),
-      laufzeitJahre: map['laufzeitJahre'] as int,
-      foerderungBEG: (map['foerderungBEG'] as num).toDouble(),
-      foerderungBEW: (map['foerderungBEW'] as num).toDouble(),
+      zinssatz: WertMitQuelle.fromMap(
+        map['zinssatz'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
+      laufzeitJahre: WertMitQuelle.fromMap(
+        map['laufzeitJahre'] as Map<String, dynamic>,
+            (v) => v as int,
+      ),
+      foerderungBEG: WertMitQuelle.fromMap(
+        map['foerderungBEG'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
+      foerderungBEW: WertMitQuelle.fromMap(
+        map['foerderungBEW'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'zinssatz': zinssatz,
-      'laufzeitJahre': laufzeitJahre,
-      'foerderungBEG': foerderungBEG,
-      'foerderungBEW': foerderungBEW,
+      'zinssatz': zinssatz.toMap((v) => v),
+      'laufzeitJahre': laufzeitJahre.toMap((v) => v),
+      'foerderungBEG': foerderungBEG.toMap((v) => v),
+      'foerderungBEW': foerderungBEW.toMap((v) => v),
     };
   }
 }
 
-/// Ein Szenario (z.B. Wärmepumpe, Wärmenetz, etc.)
+/// Szenario
 class SzenarioStammdaten {
-  final String id; // 'waermepumpe', 'waermenetzOhneUGS', etc.
-  final String bezeichnung; // "Wärmepumpe"
-  final String beschreibung; // "Luft/Wasser-Wärmepumpe 10 kW..."
+  final String id;
+  final String bezeichnung;
+  final String beschreibung;
   final SzenarioTyp typ;
-  final int sortierung; // Für Reihenfolge in Darstellung
+  final int sortierung;
 
-  // B. Investitionskosten
   final InvestitionskostenDaten investition;
-
-  // C. Wärmekosten (laufend)
   final WaermekostenDaten waermekosten;
-
-  // D. Nebenkosten (laufend)
   final NebenkostenDaten nebenkosten;
 
   const SzenarioStammdaten({
@@ -204,13 +282,13 @@ class SzenarioStammdaten {
       typ: SzenarioTyp.values.byName(map['typ'] as String),
       sortierung: map['sortierung'] as int,
       investition: InvestitionskostenDaten.fromMap(
-          map['investition'] as Map<String, dynamic>
+        map['investition'] as Map<String, dynamic>,
       ),
       waermekosten: WaermekostenDaten.fromMap(
-          map['waermekosten'] as Map<String, dynamic>
+        map['waermekosten'] as Map<String, dynamic>,
       ),
       nebenkosten: NebenkostenDaten.fromMap(
-          map['nebenkosten'] as Map<String, dynamic>
+        map['nebenkosten'] as Map<String, dynamic>,
       ),
     );
   }
@@ -230,21 +308,48 @@ class SzenarioStammdaten {
 }
 
 enum SzenarioTyp {
-  dezentral, // Wärmepumpe
-  zentral,   // Wärmenetz-Varianten
+  dezentral,
+  zentral,
 }
 
-/// Investitionskosten (Abschnitt B)
+/// Investitionskosten - FEST VORDEFINIERTE POSITIONEN
 class InvestitionskostenDaten {
-  final List<InvestitionsPosition> positionen; // Einzelpositionen
-  final double gesamtBrutto; // Summe aller Positionen
-  final FoerderungsTyp foerderungsTyp; // BEG, BEW, keine
-  final double foerderquote; // 0-1
-  final double foerderbetrag; // berechnet
-  final double nettoNachFoerderung; // berechnet
+  // B.1 - Nur Wärmepumpe
+  final InvestitionsPosition? waermepumpe;
+
+  // B.2 - Nur WN Kunde
+  final InvestitionsPosition? uebergabestation;
+
+  // B.3 - WP und WN Kunde (unterschiedliche Beträge)
+  final InvestitionsPosition? twwSpeicher;
+
+  // B.4 - WP und WN Kunde ("inkl." Text)
+  final InvestitionsPositionText? hydraulik;
+
+  // B.6 - Nur WN Kunde
+  final InvestitionsPosition? heizlastberechnung;
+
+  // B.7 - Nur WP
+  final InvestitionsPosition? zaehlerschrank;
+
+  // B.8 - Nur WN Süwag
+  final InvestitionsPosition? bkz;
+
+  // Berechnete Werte
+  final double gesamtBrutto;
+  final FoerderungsTyp foerderungsTyp;
+  final double foerderquote;
+  final double foerderbetrag;
+  final double nettoNachFoerderung;
 
   const InvestitionskostenDaten({
-    required this.positionen,
+    this.waermepumpe,
+    this.uebergabestation,
+    this.twwSpeicher,
+    this.hydraulik,
+    this.heizlastberechnung,
+    this.zaehlerschrank,
+    this.bkz,
     required this.gesamtBrutto,
     required this.foerderungsTyp,
     required this.foerderquote,
@@ -254,9 +359,27 @@ class InvestitionskostenDaten {
 
   factory InvestitionskostenDaten.fromMap(Map<String, dynamic> map) {
     return InvestitionskostenDaten(
-      positionen: (map['positionen'] as List)
-          .map((p) => InvestitionsPosition.fromMap(p as Map<String, dynamic>))
-          .toList(),
+      waermepumpe: map['waermepumpe'] != null
+          ? InvestitionsPosition.fromMap(map['waermepumpe'] as Map<String, dynamic>)
+          : null,
+      uebergabestation: map['uebergabestation'] != null
+          ? InvestitionsPosition.fromMap(map['uebergabestation'] as Map<String, dynamic>)
+          : null,
+      twwSpeicher: map['twwSpeicher'] != null
+          ? InvestitionsPosition.fromMap(map['twwSpeicher'] as Map<String, dynamic>)
+          : null,
+      hydraulik: map['hydraulik'] != null
+          ? InvestitionsPositionText.fromMap(map['hydraulik'] as Map<String, dynamic>)
+          : null,
+      heizlastberechnung: map['heizlastberechnung'] != null
+          ? InvestitionsPosition.fromMap(map['heizlastberechnung'] as Map<String, dynamic>)
+          : null,
+      zaehlerschrank: map['zaehlerschrank'] != null
+          ? InvestitionsPosition.fromMap(map['zaehlerschrank'] as Map<String, dynamic>)
+          : null,
+      bkz: map['bkz'] != null
+          ? InvestitionsPosition.fromMap(map['bkz'] as Map<String, dynamic>)
+          : null,
       gesamtBrutto: (map['gesamtBrutto'] as num).toDouble(),
       foerderungsTyp: FoerderungsTyp.values.byName(map['foerderungsTyp'] as String),
       foerderquote: (map['foerderquote'] as num).toDouble(),
@@ -267,7 +390,13 @@ class InvestitionskostenDaten {
 
   Map<String, dynamic> toMap() {
     return {
-      'positionen': positionen.map((p) => p.toMap()).toList(),
+      if (waermepumpe != null) 'waermepumpe': waermepumpe!.toMap(),
+      if (uebergabestation != null) 'uebergabestation': uebergabestation!.toMap(),
+      if (twwSpeicher != null) 'twwSpeicher': twwSpeicher!.toMap(),
+      if (hydraulik != null) 'hydraulik': hydraulik!.toMap(),
+      if (heizlastberechnung != null) 'heizlastberechnung': heizlastberechnung!.toMap(),
+      if (zaehlerschrank != null) 'zaehlerschrank': zaehlerschrank!.toMap(),
+      if (bkz != null) 'bkz': bkz!.toMap(),
       'gesamtBrutto': gesamtBrutto,
       'foerderungsTyp': foerderungsTyp.name,
       'foerderquote': foerderquote,
@@ -277,9 +406,10 @@ class InvestitionskostenDaten {
   }
 }
 
+/// Investitionsposition mit Betrag und Quelle
 class InvestitionsPosition {
   final String bezeichnung;
-  final double betrag; // €
+  final WertMitQuelle<double> betrag;
   final String? bemerkung;
 
   const InvestitionsPosition({
@@ -291,7 +421,10 @@ class InvestitionsPosition {
   factory InvestitionsPosition.fromMap(Map<String, dynamic> map) {
     return InvestitionsPosition(
       bezeichnung: map['bezeichnung'] as String,
-      betrag: (map['betrag'] as num).toDouble(),
+      betrag: WertMitQuelle.fromMap(
+        map['betrag'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      ),
       bemerkung: map['bemerkung'] as String?,
     );
   }
@@ -299,37 +432,76 @@ class InvestitionsPosition {
   Map<String, dynamic> toMap() {
     return {
       'bezeichnung': bezeichnung,
-      'betrag': betrag,
+      'betrag': betrag.toMap((v) => v),
       if (bemerkung != null) 'bemerkung': bemerkung,
+    };
+  }
+}
+
+/// Investitionsposition mit Text statt Betrag (z.B. "inkl.")
+class InvestitionsPositionText {
+  final String bezeichnung;
+  final WertMitQuelle<String> text;
+
+  const InvestitionsPositionText({
+    required this.bezeichnung,
+    required this.text,
+  });
+
+  factory InvestitionsPositionText.fromMap(Map<String, dynamic> map) {
+    return InvestitionsPositionText(
+      bezeichnung: map['bezeichnung'] as String,
+      text: WertMitQuelle.fromMap(
+        map['text'] as Map<String, dynamic>,
+            (v) => v as String,
+      ),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'bezeichnung': bezeichnung,
+      'text': text.toMap((v) => v),
     };
   }
 }
 
 enum FoerderungsTyp {
   keine,
-  beg, // BEG 30%
-  bew, // BEW für Süwag
+  beg,
+  bew,
 }
 
-/// Wärmekosten (Abschnitt C)
+// In lib/models/kostenvergleich_data.dart
+
+/// Wärmekosten mit Quellen
 class WaermekostenDaten {
   // Verbrauch
-  final double? stromverbrauchKWh; // Nur Wärmepumpe
-  final double? waermeVerbrauchGasKWh; // Wärmenetz aus Gas
-  final double? waermeVerbrauchStromKWh; // Wärmenetz aus Strom
+  final WertMitQuelle<double>? stromverbrauchKWh;
+  final WertMitQuelle<double>? waermeVerbrauchGasKWh;
+  final WertMitQuelle<double>? waermeVerbrauchStromKWh;
 
   // Arbeitspreise
-  final double? stromarbeitspreisCtKWh; // ct/kWh
-  final double? waermeGasArbeitspreisCtKWh; // ct/kWh
-  final double? waermeStromArbeitspreisCtKWh; // ct/kWh
+  final WertMitQuelle<double>? stromarbeitspreisCtKWh;
+  final WertMitQuelle<double>? waermeGasArbeitspreisCtKWh;
+  final WertMitQuelle<double>? waermeStromArbeitspreisCtKWh;
 
   // Grundpreise
-  final double? stromGrundpreisEuroMonat; // €/Monat
-  final double? waermeGrundpreisEuroJahr; // €/Jahr (o. Wärme)
-  final double? waermeMesspreisEuroJahr; // €/Jahr
+  final WertMitQuelle<double>? stromGrundpreisEuroMonat;
+  final WertMitQuelle<double>? waermeGrundpreisEuroJahr;
+  final WertMitQuelle<double>? waermeMesspreisEuroJahr;
 
-  // JAZ für Wärmepumpe
-  final double? jahresarbeitszahl; // z.B. 3.0
+  // NEU: Messpreis aufgeteilt in 3 Komponenten
+  final WertMitQuelle<double>? messpreisWasserzaehlerEuroJahr;
+  final WertMitQuelle<double>? messpreisWaermezaehlerEuroJahr;
+  final WertMitQuelle<double>? messpreisEichgebuehrenEuroJahr;
+
+
+  // JAZ
+  final WertMitQuelle<double>? jahresarbeitszahl;
+
+  // NEU: Anteil Gaswärme (0.0 bis 1.0)
+  final WertMitQuelle<double>? anteilGaswaerme;
 
   const WaermekostenDaten({
     this.stromverbrauchKWh,
@@ -340,22 +512,29 @@ class WaermekostenDaten {
     this.waermeStromArbeitspreisCtKWh,
     this.stromGrundpreisEuroMonat,
     this.waermeGrundpreisEuroJahr,
+    this.messpreisWasserzaehlerEuroJahr, // NEU
+    this.messpreisWaermezaehlerEuroJahr, // NEU
+    this.messpreisEichgebuehrenEuroJahr, // NEU
     this.waermeMesspreisEuroJahr,
     this.jahresarbeitszahl,
+    this.anteilGaswaerme, // NEU
   });
 
-// Füge diese copyWith Methode hinzu:
   WaermekostenDaten copyWith({
-    double? stromverbrauchKWh,
-    double? waermeVerbrauchGasKWh,
-    double? waermeVerbrauchStromKWh,
-    double? stromarbeitspreisCtKWh,
-    double? waermeGasArbeitspreisCtKWh,
-    double? waermeStromArbeitspreisCtKWh,
-    double? stromGrundpreisEuroMonat,
-    double? waermeGrundpreisEuroJahr,
-    double? waermeMesspreisEuroJahr,
-    double? jahresarbeitszahl,
+    WertMitQuelle<double>? stromverbrauchKWh,
+    WertMitQuelle<double>? waermeVerbrauchGasKWh,
+    WertMitQuelle<double>? waermeVerbrauchStromKWh,
+    WertMitQuelle<double>? stromarbeitspreisCtKWh,
+    WertMitQuelle<double>? waermeGasArbeitspreisCtKWh,
+    WertMitQuelle<double>? waermeStromArbeitspreisCtKWh,
+    WertMitQuelle<double>? stromGrundpreisEuroMonat,
+    WertMitQuelle<double>? waermeGrundpreisEuroJahr,
+    WertMitQuelle<double>? messpreisWasserzaehlerEuroJahr, // NEU
+    WertMitQuelle<double>? messpreisWaermezaehlerEuroJahr, // NEU
+    WertMitQuelle<double>? messpreisEichgebuehrenEuroJahr, // NEU
+    WertMitQuelle<double>? waermeMesspreisEuroJahr,
+    WertMitQuelle<double>? jahresarbeitszahl,
+    WertMitQuelle<double>? anteilGaswaerme, // NEU
   }) {
     return WaermekostenDaten(
       stromverbrauchKWh: stromverbrauchKWh ?? this.stromverbrauchKWh,
@@ -366,66 +545,136 @@ class WaermekostenDaten {
       waermeStromArbeitspreisCtKWh: waermeStromArbeitspreisCtKWh ?? this.waermeStromArbeitspreisCtKWh,
       stromGrundpreisEuroMonat: stromGrundpreisEuroMonat ?? this.stromGrundpreisEuroMonat,
       waermeGrundpreisEuroJahr: waermeGrundpreisEuroJahr ?? this.waermeGrundpreisEuroJahr,
+      messpreisWasserzaehlerEuroJahr: messpreisWasserzaehlerEuroJahr ?? this.messpreisWasserzaehlerEuroJahr, // NEU
+      messpreisWaermezaehlerEuroJahr: messpreisWaermezaehlerEuroJahr ?? this.messpreisWaermezaehlerEuroJahr, // NEU
+      messpreisEichgebuehrenEuroJahr: messpreisEichgebuehrenEuroJahr ?? this.messpreisEichgebuehrenEuroJahr, // NEU
+
       waermeMesspreisEuroJahr: waermeMesspreisEuroJahr ?? this.waermeMesspreisEuroJahr,
       jahresarbeitszahl: jahresarbeitszahl ?? this.jahresarbeitszahl,
+      anteilGaswaerme: anteilGaswaerme ?? this.anteilGaswaerme, // NEU
     );
   }
 
   factory WaermekostenDaten.fromMap(Map<String, dynamic> map) {
     return WaermekostenDaten(
       stromverbrauchKWh: map['stromverbrauchKWh'] != null
-          ? (map['stromverbrauchKWh'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['stromverbrauchKWh'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       waermeVerbrauchGasKWh: map['waermeVerbrauchGasKWh'] != null
-          ? (map['waermeVerbrauchGasKWh'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['waermeVerbrauchGasKWh'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       waermeVerbrauchStromKWh: map['waermeVerbrauchStromKWh'] != null
-          ? (map['waermeVerbrauchStromKWh'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['waermeVerbrauchStromKWh'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       stromarbeitspreisCtKWh: map['stromarbeitspreisCtKWh'] != null
-          ? (map['stromarbeitspreisCtKWh'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['stromarbeitspreisCtKWh'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       waermeGasArbeitspreisCtKWh: map['waermeGasArbeitspreisCtKWh'] != null
-          ? (map['waermeGasArbeitspreisCtKWh'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['waermeGasArbeitspreisCtKWh'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       waermeStromArbeitspreisCtKWh: map['waermeStromArbeitspreisCtKWh'] != null
-          ? (map['waermeStromArbeitspreisCtKWh'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['waermeStromArbeitspreisCtKWh'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       stromGrundpreisEuroMonat: map['stromGrundpreisEuroMonat'] != null
-          ? (map['stromGrundpreisEuroMonat'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['stromGrundpreisEuroMonat'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       waermeGrundpreisEuroJahr: map['waermeGrundpreisEuroJahr'] != null
-          ? (map['waermeGrundpreisEuroJahr'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['waermeGrundpreisEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
+          : null,
+
+      messpreisWasserzaehlerEuroJahr: map['messpreisWasserzaehlerEuroJahr'] != null
+          ? WertMitQuelle.fromMap(
+        map['messpreisWasserzaehlerEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
+          : null,
+      messpreisWaermezaehlerEuroJahr: map['messpreisWaermezaehlerEuroJahr'] != null
+          ? WertMitQuelle.fromMap(
+        map['messpreisWaermezaehlerEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
+          : null,
+      messpreisEichgebuehrenEuroJahr: map['messpreisEichgebuehrenEuroJahr'] != null
+          ? WertMitQuelle.fromMap(
+        map['messpreisEichgebuehrenEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       waermeMesspreisEuroJahr: map['waermeMesspreisEuroJahr'] != null
-          ? (map['waermeMesspreisEuroJahr'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['waermeMesspreisEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
+
       jahresarbeitszahl: map['jahresarbeitszahl'] != null
-          ? (map['jahresarbeitszahl'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['jahresarbeitszahl'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
+          : null,
+      anteilGaswaerme: map['anteilGaswaerme'] != null // NEU
+          ? WertMitQuelle.fromMap(
+        map['anteilGaswaerme'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      if (stromverbrauchKWh != null) 'stromverbrauchKWh': stromverbrauchKWh,
-      if (waermeVerbrauchGasKWh != null) 'waermeVerbrauchGasKWh': waermeVerbrauchGasKWh,
-      if (waermeVerbrauchStromKWh != null) 'waermeVerbrauchStromKWh': waermeVerbrauchStromKWh,
-      if (stromarbeitspreisCtKWh != null) 'stromarbeitspreisCtKWh': stromarbeitspreisCtKWh,
-      if (waermeGasArbeitspreisCtKWh != null) 'waermeGasArbeitspreisCtKWh': waermeGasArbeitspreisCtKWh,
-      if (waermeStromArbeitspreisCtKWh != null) 'waermeStromArbeitspreisCtKWh': waermeStromArbeitspreisCtKWh,
-      if (stromGrundpreisEuroMonat != null) 'stromGrundpreisEuroMonat': stromGrundpreisEuroMonat,
-      if (waermeGrundpreisEuroJahr != null) 'waermeGrundpreisEuroJahr': waermeGrundpreisEuroJahr,
-      if (waermeMesspreisEuroJahr != null) 'waermeMesspreisEuroJahr': waermeMesspreisEuroJahr,
-      if (jahresarbeitszahl != null) 'jahresarbeitszahl': jahresarbeitszahl,
+      if (stromverbrauchKWh != null) 'stromverbrauchKWh': stromverbrauchKWh!.toMap((v) => v),
+      if (waermeVerbrauchGasKWh != null) 'waermeVerbrauchGasKWh': waermeVerbrauchGasKWh!.toMap((v) => v),
+      if (waermeVerbrauchStromKWh != null) 'waermeVerbrauchStromKWh': waermeVerbrauchStromKWh!.toMap((v) => v),
+      if (stromarbeitspreisCtKWh != null) 'stromarbeitspreisCtKWh': stromarbeitspreisCtKWh!.toMap((v) => v),
+      if (waermeGasArbeitspreisCtKWh != null) 'waermeGasArbeitspreisCtKWh': waermeGasArbeitspreisCtKWh!.toMap((v) => v),
+      if (waermeStromArbeitspreisCtKWh != null) 'waermeStromArbeitspreisCtKWh': waermeStromArbeitspreisCtKWh!.toMap((v) => v),
+      if (stromGrundpreisEuroMonat != null) 'stromGrundpreisEuroMonat': stromGrundpreisEuroMonat!.toMap((v) => v),
+      if (waermeGrundpreisEuroJahr != null) 'waermeGrundpreisEuroJahr': waermeGrundpreisEuroJahr!.toMap((v) => v),
+
+      if (messpreisWasserzaehlerEuroJahr != null)
+        'messpreisWasserzaehlerEuroJahr': messpreisWasserzaehlerEuroJahr!.toMap((v) => v),
+      if (messpreisWaermezaehlerEuroJahr != null)
+        'messpreisWaermezaehlerEuroJahr': messpreisWaermezaehlerEuroJahr!.toMap((v) => v),
+      if (messpreisEichgebuehrenEuroJahr != null)
+        'messpreisEichgebuehrenEuroJahr': messpreisEichgebuehrenEuroJahr!.toMap((v) => v),
+      if (waermeMesspreisEuroJahr != null)
+        'waermeMesspreisEuroJahr': waermeMesspreisEuroJahr!.toMap((v) => v),
+      if (jahresarbeitszahl != null) 'jahresarbeitszahl': jahresarbeitszahl!.toMap((v) => v),
+      if (anteilGaswaerme != null) 'anteilGaswaerme': anteilGaswaerme!.toMap((v) => v), // NEU
     };
   }
 }
 
-/// Nebenkosten (Abschnitt D)
+/// Nebenkosten mit Quellen
 class NebenkostenDaten {
-  final double? wartungEuroJahr; // €/Jahr
-  final double? grundpreisUebergabestationEuroJahr; // €/Jahr (nur Süwag)
+  final WertMitQuelle<double>? wartungEuroJahr;
+  final WertMitQuelle<double>? grundpreisUebergabestationEuroJahr;
 
   const NebenkostenDaten({
     this.wartungEuroJahr,
@@ -435,19 +684,25 @@ class NebenkostenDaten {
   factory NebenkostenDaten.fromMap(Map<String, dynamic> map) {
     return NebenkostenDaten(
       wartungEuroJahr: map['wartungEuroJahr'] != null
-          ? (map['wartungEuroJahr'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['wartungEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
       grundpreisUebergabestationEuroJahr: map['grundpreisUebergabestationEuroJahr'] != null
-          ? (map['grundpreisUebergabestationEuroJahr'] as num).toDouble()
+          ? WertMitQuelle.fromMap(
+        map['grundpreisUebergabestationEuroJahr'] as Map<String, dynamic>,
+            (v) => (v as num).toDouble(),
+      )
           : null,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      if (wartungEuroJahr != null) 'wartungEuroJahr': wartungEuroJahr,
+      if (wartungEuroJahr != null) 'wartungEuroJahr': wartungEuroJahr!.toMap((v) => v),
       if (grundpreisUebergabestationEuroJahr != null)
-        'grundpreisUebergabestationEuroJahr': grundpreisUebergabestationEuroJahr,
+        'grundpreisUebergabestationEuroJahr': grundpreisUebergabestationEuroJahr!.toMap((v) => v),
     };
   }
 }

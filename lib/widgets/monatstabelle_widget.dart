@@ -5,7 +5,7 @@ import '../models/index_data.dart';
 import '../models/arbeitspreis_data.dart';
 import '../constants/suewag_colors.dart';
 import '../constants/suewag_text_styles.dart';
-
+import 'package:intl/intl.dart';
 /// Monatstabelle mit Rohdaten der Indizes
 /// Hebt die 3 Berechnungsmonate hervor
 class MonatstabelleWidget extends StatelessWidget {
@@ -16,6 +16,8 @@ class MonatstabelleWidget extends StatelessWidget {
   final Color kColor;
   final Color mColor;
   final QuartalsBerechnungsdaten? selectedBerechnungsdaten;
+  final String kIndexCode; // ← NEU
+  final String mIndexCode; // ← NEU
 
   const MonatstabelleWidget({
     Key? key,
@@ -26,6 +28,8 @@ class MonatstabelleWidget extends StatelessWidget {
     required this.kColor,
     required this.mColor,
     this.selectedBerechnungsdaten,
+    required this.kIndexCode, // ← NEU
+    required this.mIndexCode, // ← NEU
   }) : super(key: key);
 
   @override
@@ -68,6 +72,7 @@ class MonatstabelleWidget extends StatelessWidget {
     );
   }
 
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -78,66 +83,125 @@ class MonatstabelleWidget extends StatelessWidget {
           topRight: Radius.circular(12),
         ),
       ),
-      child: Row(
-        children: [
-          // Monat
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Monat',
-              style: SuewagTextStyles.tableHeader.copyWith(
-                color: SuewagColors.primary,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+
+          return Row(
+            children: [
+              // Monat
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Monat',
+                  style: SuewagTextStyles.tableHeader.copyWith(
+                    color: SuewagColors.primary,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // K Index
-          Expanded(
-            flex: 2,
-            child: _buildHeaderCell(kLabel, kColor, 'K'),
-          ),
+              // K Index
+              Expanded(
+                flex: 2,
+                child: _buildHeaderCell(kIndexCode, kColor, 'K', isMobile), // ← kIndexCode statt kLabel
 
-          // M Index
-          Expanded(
-            flex: 2,
-            child: _buildHeaderCell(mLabel, mColor, 'M'),
-          ),
-        ],
+              ),
+
+              // M Index
+              Expanded(
+                flex: 2,
+                child: _buildHeaderCell(mIndexCode, mColor, 'M', isMobile), // ← mIndexCode statt mLabel
+
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeaderCell(String label, Color color, String badge) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          label,
-          style: SuewagTextStyles.tableHeader.copyWith(color: color),
-          textAlign: TextAlign.right,
-        ),
-        const SizedBox(height: 2),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          decoration: BoxDecoration(
-            color: badge == 'K'
-                ? SuewagColors.indiablau.withOpacity(0.2)
-                : SuewagColors.leuchtendgruen.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            badge,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: badge == 'K'
-                  ? SuewagColors.indiablau
-                  : SuewagColors.leuchtendgruen,
+  Widget _buildHeaderCell(String label, Color color, String badge, bool isMobile) {
+    if (isMobile) {
+      // Mobile: Hochkant
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Badge oben
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          //   decoration: BoxDecoration(
+          //     color: badge == 'K'
+          //         ? SuewagColors.indiablau.withOpacity(0.2)
+          //         : SuewagColors.leuchtendgruen.withOpacity(0.2),
+          //     borderRadius: BorderRadius.circular(4),
+          //   ),
+          //   child: Text(
+          //     badge,
+          //     style: TextStyle(
+          //       fontSize: 10,
+          //       fontWeight: FontWeight.bold,
+          //       color: badge == 'K'
+          //           ? SuewagColors.indiablau
+          //           : SuewagColors.leuchtendgruen,
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(height: 4),
+          // Label rotiert
+          RotatedBox(
+            quarterTurns: -1,
+            child: Center(
+              child: Text(
+                label,
+                style: SuewagTextStyles.tableHeader.copyWith(
+                  color: color,
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    } else {
+      // Desktop: Quer mit Badge
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,  // ← GEÄNDERT von end zu center
+
+        children: [
+          // Badge links
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          //   decoration: BoxDecoration(
+          //     color: badge == 'K'
+          //         ? SuewagColors.indiablau.withOpacity(0.2)
+          //         : SuewagColors.leuchtendgruen.withOpacity(0.2),
+          //     borderRadius: BorderRadius.circular(4),
+          //   ),
+          //   child: Text(
+          //     badge,
+          //     style: TextStyle(
+          //       fontSize: 9,
+          //       fontWeight: FontWeight.bold,
+          //       color: badge == 'K'
+          //           ? SuewagColors.indiablau
+          //           : SuewagColors.leuchtendgruen,
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(width: 6),
+          // Label rechts
+          Flexible(
+            child: Text(
+              label,
+              style: SuewagTextStyles.tableHeader.copyWith(color: color),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildRow({
@@ -187,8 +251,8 @@ class MonatstabelleWidget extends StatelessWidget {
                         color: SuewagColors.leuchtendgruen,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
-                        'n',
+                      child:  Text(
+                        _getNNotation(date), // ← NEU: statt 'n'
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -225,7 +289,21 @@ class MonatstabelleWidget extends StatelessWidget {
       ),
     );
   }
+  String _getNNotation(DateTime date) {
+    if (selectedBerechnungsdaten == null) return 'n';
 
+    final b = selectedBerechnungsdaten!;
+
+    if (date.year == b.monat1.year && date.month == b.monat1.month) {
+      return 'n-4';
+    } else if (date.year == b.monat2.year && date.month == b.monat2.month) {
+      return 'n-3';
+    } else if (date.year == b.monat3.year && date.month == b.monat3.month) {
+      return 'n-2';
+    }
+
+    return 'n';
+  }
   Widget _buildValueCell({
     required double? value,
     required Color color,
@@ -241,12 +319,12 @@ class MonatstabelleWidget extends StatelessWidget {
         borderRadius: isHighlighted ? BorderRadius.circular(6) : null,
       ),
       child: Text(
-        value?.toStringAsFixed(1) ?? '-',
+        value != null ? _formatGermanNumber(value, 1) : '-',
         style: SuewagTextStyles.tableNumber.copyWith(
           color: isHighlighted ? color : SuewagColors.textPrimary,
           fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
         ),
-        textAlign: TextAlign.right,
+        textAlign: TextAlign.center,  // ← GEÄNDERT von right zu center
       ),
     );
   }
@@ -267,7 +345,11 @@ class MonatstabelleWidget extends StatelessWidget {
       return null;
     }
   }
-
+  /// Formatiere Zahl im deutschen Format
+  String _formatGermanNumber(double value, int decimals) {
+    final formatter = NumberFormat('#,##0.${'0' * decimals}', 'de_DE');
+    return formatter.format(value);
+  }
   String _formatDate(DateTime date) {
     const months = [
       'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
@@ -337,59 +419,126 @@ class QuartalstabelleWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: SuewagColors.indiablau.withOpacity(0.1),
+        color: SuewagColors.primary.withOpacity(0.1),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
         ),
       ),
-      child: Row(
-        children: [
-          // Quartal
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Quartal',
-              style: SuewagTextStyles.tableHeader.copyWith(
-                color: SuewagColors.indiablau,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+
+          return Row(
+            children: [
+              // Monat
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Monat',
+                  style: SuewagTextStyles.tableHeader.copyWith(
+                    color: SuewagColors.primary,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // K Ø
-          Expanded(
-            flex: 2,
-            child: _buildHeaderCell('$kLabel Ø', kColor),
-          ),
-
-          // M Ø
-          Expanded(
-            flex: 2,
-            child: _buildHeaderCell('$mLabel Ø', mColor),
-          ),
-
-          // Preis
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Preis',
-              style: SuewagTextStyles.tableHeader.copyWith(
-                color: SuewagColors.primary,
+              // K Index
+              Expanded(
+                flex: 2,
+                child: _buildHeaderCell(kLabel, kColor, 'K', isMobile),
               ),
-              textAlign: TextAlign.right,
-            ),
-          ),
-        ],
+
+              // M Index
+              Expanded(
+                flex: 2,
+                child: _buildHeaderCell(mLabel, mColor, 'M', isMobile),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeaderCell(String label, Color color) {
-    return Text(
-      label,
-      style: SuewagTextStyles.tableHeader.copyWith(color: color),
-      textAlign: TextAlign.right,
-    );
+  Widget _buildHeaderCell(String label, Color color, String badge, bool isMobile) {
+    if (isMobile) {
+      // Mobile: Hochkant
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Badge oben
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: badge == 'K'
+                  ? SuewagColors.indiablau.withOpacity(0.2)
+                  : SuewagColors.leuchtendgruen.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              badge,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: badge == 'K'
+                    ? SuewagColors.indiablau
+                    : SuewagColors.leuchtendgruen,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Label rotiert
+          RotatedBox(
+            quarterTurns: -1,
+            child: Text(
+              label,
+              style: SuewagTextStyles.tableHeader.copyWith(
+                color: color,
+                fontSize: 11,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Desktop: Quer mit Badge
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Badge links
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: badge == 'K'
+                  ? SuewagColors.indiablau.withOpacity(0.2)
+                  : SuewagColors.leuchtendgruen.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              badge,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: badge == 'K'
+                    ? SuewagColors.indiablau
+                    : SuewagColors.leuchtendgruen,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Label rechts
+          Flexible(
+            child: Text(
+              label,
+              style: SuewagTextStyles.tableHeader.copyWith(color: color),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildRow(QuartalsUebersicht q, int index, bool isHighlighted) {
@@ -461,19 +610,20 @@ class QuartalstabelleWidget extends StatelessWidget {
           ),
 
           // Preis
+          // Preis
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                '${q.preis.toStringAsFixed(2)} ct',
+                '${_formatGermanNumber(q.preis, 2)} ct',
                 style: SuewagTextStyles.tableNumber.copyWith(
                   fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
                   color: isHighlighted
                       ? SuewagColors.primary
                       : SuewagColors.textPrimary,
                 ),
-                textAlign: TextAlign.right,
+                textAlign: TextAlign.center,  // ← GEÄNDERT von right zu center
               ),
             ),
           ),
@@ -481,7 +631,11 @@ class QuartalstabelleWidget extends StatelessWidget {
       ),
     );
   }
-
+  /// Formatiere Zahl im deutschen Format
+  String _formatGermanNumber(double value, int decimals) {
+    final formatter = NumberFormat('#,##0.${'0' * decimals}', 'de_DE');
+    return formatter.format(value);
+  }
   Widget _buildValueCell({
     required double value,
     required Color color,
@@ -497,12 +651,12 @@ class QuartalstabelleWidget extends StatelessWidget {
         borderRadius: isHighlighted ? BorderRadius.circular(6) : null,
       ),
       child: Text(
-        value.toStringAsFixed(1),
+        _formatGermanNumber(value, 1),
         style: SuewagTextStyles.tableNumber.copyWith(
           color: isHighlighted ? color : SuewagColors.textPrimary,
           fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
         ),
-        textAlign: TextAlign.right,
+        textAlign: TextAlign.center,  // ← GEÄNDERT von right zu center
       ),
     );
   }

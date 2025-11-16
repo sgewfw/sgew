@@ -5,9 +5,8 @@ import '../../constants/suewag_colors.dart';
 import '../../constants/suewag_text_styles.dart';
 import '../../services/kostenvergleich_firebase_service.dart';
 import '../../models/kostenvergleich_data.dart';
-import 'tabs/grunddaten_tab.dart';
-import 'tabs/waermepumpe_tab.dart';
-import 'tabs/waermenetz_tab.dart';
+
+import 'kostenvergleich_edit_table_widget.dart';
 
 class KostenvergleichJahrEditorScreen extends StatefulWidget {
   final int jahr;
@@ -23,28 +22,19 @@ class KostenvergleichJahrEditorScreen extends StatefulWidget {
 }
 
 class _KostenvergleichJahrEditorScreenState
-    extends State<KostenvergleichJahrEditorScreen>
-    with SingleTickerProviderStateMixin {
+    extends State<KostenvergleichJahrEditorScreen> {
   final KostenvergleichFirebaseService _service =
   KostenvergleichFirebaseService();
 
-  late TabController _tabController;
-
   KostenvergleichJahr? _stammdaten;
+  KostenvergleichJahr? _originalStammdaten; // Für Änderungserkennung
   bool _isLoading = true;
   bool _hasChanges = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
     _loadData();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -56,7 +46,9 @@ class _KostenvergleichJahrEditorScreenState
       if (mounted) {
         setState(() {
           _stammdaten = daten;
+          _originalStammdaten = daten;
           _isLoading = false;
+          _hasChanges = false;
         });
       }
     } catch (e) {
@@ -85,21 +77,23 @@ class _KostenvergleichJahrEditorScreenState
               Text('Validierungsfehler'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: fehler
-                .map((f) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('• '),
-                  Expanded(child: Text(f)),
-                ],
-              ),
-            ))
-                .toList(),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: fehler
+                  .map((f) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('• '),
+                    Expanded(child: Text(f)),
+                  ],
+                ),
+              ))
+                  .toList(),
+            ),
           ),
           actions: [
             TextButton(
@@ -130,6 +124,7 @@ class _KostenvergleichJahrEditorScreenState
         Navigator.of(context).pop(); // Loading dialog
         setState(() {
           _stammdaten = aktualisiert;
+          _originalStammdaten = aktualisiert;
           _hasChanges = false;
         });
 
@@ -137,6 +132,7 @@ class _KostenvergleichJahrEditorScreenState
           const SnackBar(
             content: Text('✅ Gespeichert'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -145,7 +141,7 @@ class _KostenvergleichJahrEditorScreenState
         Navigator.of(context).pop(); // Loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler: $e'),
+            content: Text('Fehler beim Speichern: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -196,7 +192,10 @@ class _KostenvergleichJahrEditorScreenState
             ? const Center(child: CircularProgressIndicator())
             : _stammdaten == null
             ? _buildErrorState()
-            : _buildBody(),
+            : KostenvergleichEditTableWidget(
+          initialStammdaten: _stammdaten!,
+          onChanged: _onDataChanged,
+        ),
       ),
     );
   }
@@ -233,56 +232,18 @@ class _KostenvergleichJahrEditorScreenState
       foregroundColor: SuewagColors.quartzgrau100,
       elevation: 0,
       actions: [
-        if (_hasChanges)
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Speichern',
-            onPressed: _speichern,
+        // Speichern-Button (immer sichtbar, aber disabled wenn keine Änderungen)
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: ElevatedButton.icon(
+            onPressed: _hasChanges ? _speichern : null,
+            icon: const Icon(Icons.save, size: 18),
+            label: const Text('Speichern'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _hasChanges ? SuewagColors.primary : Colors.grey,
+              foregroundColor: Colors.white,
+            ),
           ),
-      ],
-      bottom: TabBar(
-        controller: _tabController,
-        indicatorColor: SuewagColors.fasergruen,
-        labelColor: SuewagColors.quartzgrau100,
-        unselectedLabelColor: SuewagColors.quartzgrau50,
-        isScrollable: true,
-        tabs: const [
-          Tab(text: 'Grunddaten'),
-          Tab(text: 'Wärmepumpe'),
-          Tab(text: 'Wärmenetz ohne ÜGS'),
-          Tab(text: 'Wärmenetz Kunde'),
-          Tab(text: 'Wärmenetz Süwag'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        GrunddatenTab(
-          stammdaten: _stammdaten!,
-          onChanged: _onDataChanged,
-        ),
-        WaermepumpeTab(
-          stammdaten: _stammdaten!,
-          onChanged: _onDataChanged,
-        ),
-        WaermenetzTab(
-          szenarioId: 'waermenetzOhneUGS',
-          stammdaten: _stammdaten!,
-          onChanged: _onDataChanged,
-        ),
-        WaermenetzTab(
-          szenarioId: 'waermenetzKunde',
-          stammdaten: _stammdaten!,
-          onChanged: _onDataChanged,
-        ),
-        WaermenetzTab(
-          szenarioId: 'waermenetzSuewag',
-          stammdaten: _stammdaten!,
-          onChanged: _onDataChanged,
         ),
       ],
     );

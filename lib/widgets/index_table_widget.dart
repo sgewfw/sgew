@@ -1,6 +1,7 @@
 // lib/widgets/index_table_widget.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/arbeitspreis_data.dart';
 import '../models/index_data.dart';
 import '../constants/suewag_colors.dart';
@@ -282,7 +283,7 @@ class IndexTableWidget extends StatelessWidget {
         borderRadius: isHighlighted ? BorderRadius.circular(6) : null,
       ),
       child: Text(
-        value?.toStringAsFixed(1) ?? '-',
+        value != null ? _formatGermanNumber(value) : '-',  // ← GEÄNDERT
         style: SuewagTextStyles.tableNumber.withColor(
           isHighlighted ? color : SuewagColors.textPrimary,
         ).copyWith(
@@ -298,7 +299,11 @@ class IndexTableWidget extends StatelessWidget {
     if (highlightTyp == energieTyp) return true;
     return false;
   }
-
+  /// Formatiere Zahl im deutschen Format (1.234,5)
+  String _formatGermanNumber(double value) {
+    final formatter = NumberFormat('#,##0.0', 'de_DE');
+    return formatter.format(value);
+  }
   List<DateTime> _getCommonDates() {
     final dates = <DateTime>{};
     dates.addAll(kGasData.map((d) => d.date));

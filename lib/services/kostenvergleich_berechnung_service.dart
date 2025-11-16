@@ -33,6 +33,24 @@ class KostenvergleichBerechnungService {
     );
   }
 
+  /// Berechne alle Jahreskosten (Helper für Edit-Widget)
+  List<KostenberechnungErgebnis> berechneAlleJahreskosten(KostenvergleichJahr stammdaten) {
+    final ergebnisse = <KostenberechnungErgebnis>[];
+
+    // Sortiere Szenarien nach sortierung
+    final sortedSzenarien = stammdaten.szenarien.values.toList()
+      ..sort((a, b) => a.sortierung.compareTo(b.sortierung));
+
+    for (final szenario in sortedSzenarien) {
+      final ergebnis = berechneSzenario(
+        stammdaten: stammdaten,
+        szenario: szenario,
+      );
+      ergebnisse.add(ergebnis);
+    }
+
+    return ergebnisse;
+  }
   /// Berechne ein einzelnes Szenario
   KostenberechnungErgebnis berechneSzenario({
     required KostenvergleichJahr stammdaten,
@@ -45,9 +63,9 @@ class KostenvergleichBerechnungService {
     // 1. Wärmebedarf
     final waermebedarf = useUserInput
         ? benutzerEingabe.waermebedarf
-        : stammdaten.grunddaten.heizenergiebedarf;
+        : stammdaten.grunddaten.heizenergiebedarf.wert;
 
-    final beheizteFlaeche = stammdaten.grunddaten.beheizteFlaeche;
+    final beheizteFlaeche = stammdaten.grunddaten.beheizteFlaeche.wert;
 
     // 2. Berechne Wärmekosten (C)
     final waermekosten = _berechneWaermekosten(
@@ -86,26 +104,32 @@ class KostenvergleichBerechnungService {
     // 5. Kapitaldienst berechnen
     final kapitaldienst = _berechneKapitaldienst(
       investition: investitionNetto,
-      zinssatz: stammdaten.finanzierung.zinssatz,
-      laufzeit: stammdaten.finanzierung.laufzeitJahre,
+      zinssatz: stammdaten.finanzierung.zinssatz.wert,
+      laufzeit: stammdaten.finanzierung.laufzeitJahre.wert,
     );
 
     final kapitaldienstOhneFoerderung = _berechneKapitaldienst(
       investition: investitionAngepasst,
-      zinssatz: stammdaten.finanzierung.zinssatz,
-      laufzeit: stammdaten.finanzierung.laufzeitJahre,
+      zinssatz: stammdaten.finanzierung.zinssatz.wert,
+      laufzeit: stammdaten.finanzierung.laufzeitJahre.wert,
     );
 
     final zusaetzlicherKapitaldienst = kapitaldienstOhneFoerderung - kapitaldienst;
 
-    // 6. Kostenaufschlüsselung erstellen
+// Für "Netz Kunde" keine zusätzlichen Kapitalkosten anzeigen
+// (Förderung ist Standard, daher nicht als "Extra" darstellen)
+    final zusaetzlicherKapitaldienstAnzeige = (szenario.id == 'waermenetzKunde')
+        ? 0.0
+        : zusaetzlicherKapitaldienst;
+
+// 6. Kostenaufschlüsselung erstellen
     final kostenAufschluesselung = KostenAufschluesselung(
       arbeitspreis: waermekosten['arbeitspreis']!,
       grundUndMesspreis: waermekosten['grundpreis']!,
       betriebskosten: nebenkosten['wartung']!,
       kapitalkosten: kapitaldienst,
       kapitalkostenOhneFoerderung: kapitaldienstOhneFoerderung,
-      zusaetzlicheKapitalkostenOhneFoerderung: zusaetzlicherKapitaldienst,
+      zusaetzlicheKapitalkostenOhneFoerderung: zusaetzlicherKapitaldienstAnzeige,
       zusaetzlicherGrundpreisUebergabestation: nebenkosten['grundpreisUGS']!,
     );
 
@@ -120,6 +144,8 @@ class KostenvergleichBerechnungService {
   }
 
   /// Berechne Wärmekosten (Abschnitt C)
+// In kostenvergleich_berechnung_service.dart - _berechneWaermekosten Methode
+
   Map<String, double> _berechneWaermekosten({
     required SzenarioStammdaten szenario,
     required double waermebedarf,
@@ -134,7 +160,7 @@ class KostenvergleichBerechnungService {
 
       // JAZ
       final jaz = benutzerEingabe?.jahresarbeitszahl ??
-          szenario.waermekosten.jahresarbeitszahl ??
+          szenario.waermekosten.jahresarbeitszahl?.wert ??
           3.0;
 
       // Stromverbrauch = Wärmebedarf / JAZ
@@ -142,14 +168,14 @@ class KostenvergleichBerechnungService {
 
       // Stromarbeitspreis
       final strompreisCtKWh = benutzerEingabe?.stromarbeitspreisCtKWh ??
-          szenario.waermekosten.stromarbeitspreisCtKWh ??
+          szenario.waermekosten.stromarbeitspreisCtKWh?.wert ??
           16.52;
 
       arbeitspreis = (stromverbrauch * strompreisCtKWh) / 100; // ct → €
 
       // Grundpreis
       final stromGrundpreisMonat = benutzerEingabe?.stromGrundpreisEuroMonat ??
-          szenario.waermekosten.stromGrundpreisEuroMonat ??
+          szenario.waermekosten.stromGrundpreisEuroMonat?.wert ??
           9.0;
 
       grundpreis = stromGrundpreisMonat * 12; // Monat → Jahr
@@ -157,8 +183,10 @@ class KostenvergleichBerechnungService {
     } else {
       // === WÄRMENETZ ===
 
-      // Anteil Wärme aus Strom
-      final anteilStrom = benutzerEingabe?.anteilWaermeAusStrom ?? 0.30;
+
+      // Anteil Wärme aus Gas (aus Grunddaten oder Benutzer-Eingabe)
+      final anteilStrom = benutzerEingabe?.anteilWaermeAusStrom ??
+          (1.0 - (stammdaten.grunddaten.anteilGaswaerme?.wert ?? 0.7));
       final anteilGas = 1.0 - anteilStrom;
 
       // Verbrauch aufteilen
@@ -166,18 +194,32 @@ class KostenvergleichBerechnungService {
       final waermeStromKWh = waermebedarf * anteilStrom;
 
       // Arbeitspreise
-      final gasPreisCtKWh = szenario.waermekosten.waermeGasArbeitspreisCtKWh ?? 0;
-      final stromPreisCtKWh = szenario.waermekosten.waermeStromArbeitspreisCtKWh ?? 0;
-
+      // Arbeitspreise - NEU: Nutze Benutzer-Eingaben falls vorhanden
+      final gasPreisCtKWh = benutzerEingabe?.waermeGasArbeitspreisCtKWh ??
+          szenario.waermekosten.waermeGasArbeitspreisCtKWh?.wert ?? 0;
+      final stromPreisCtKWh = benutzerEingabe?.waermeStromArbeitspreisCtKWh ??
+          szenario.waermekosten.waermeStromArbeitspreisCtKWh?.wert ?? 0;
       arbeitspreis = ((waermeGasKWh * gasPreisCtKWh) +
           (waermeStromKWh * stromPreisCtKWh)) /
           100; // ct → €
 
-      // Grund- und Messpreis
-      final waermeGrundpreis = szenario.waermekosten.waermeGrundpreisEuroJahr ?? 0;
-      final waermeMesspreis = szenario.waermekosten.waermeMesspreisEuroJahr ?? 0;
+      // Grund- und Messpreis - NEU: Verwende die drei Komponenten
+      final waermeGrundpreis = szenario.waermekosten.waermeGrundpreisEuroJahr?.wert ?? 0;
 
-      grundpreis = waermeGrundpreis + waermeMesspreis;
+      // Messpreise - neue Struktur
+      final messpreisWasser = szenario.waermekosten.messpreisWasserzaehlerEuroJahr?.wert ?? 0;
+      final messpreisWaerme = szenario.waermekosten.messpreisWaermezaehlerEuroJahr?.wert ?? 0;
+      final messpreisEich = szenario.waermekosten.messpreisEichgebuehrenEuroJahr?.wert ?? 0;
+
+      // Fallback auf altes Feld falls neue Felder nicht gesetzt
+      final messpreisAlt = szenario.waermekosten.waermeMesspreisEuroJahr?.wert ?? 0;
+
+      // Summiere neue Felder, oder nutze altes Feld als Fallback
+      final messpreisGesamt = (messpreisWasser + messpreisWaerme + messpreisEich > 0)
+          ? (messpreisWasser + messpreisWaerme + messpreisEich)
+          : messpreisAlt;
+
+      grundpreis = waermeGrundpreis + messpreisGesamt;
     }
 
     return {
@@ -191,9 +233,9 @@ class KostenvergleichBerechnungService {
     required SzenarioStammdaten szenario,
     required KostenvergleichJahr stammdaten,
   }) {
-    final wartung = szenario.nebenkosten.wartungEuroJahr ?? 0.0;
+    final wartung = szenario.nebenkosten.wartungEuroJahr?.wert ?? 0.0;
     final grundpreisUGS =
-        szenario.nebenkosten.grundpreisUebergabestationEuroJahr ?? 0.0;
+        szenario.nebenkosten.grundpreisUebergabestationEuroJahr?.wert ?? 0.0;
 
     return {
       'wartung': wartung,
@@ -218,9 +260,12 @@ class KostenvergleichBerechnungService {
     final q = 1 + (zinssatz / 100);
     final qHochN = math.pow(q, laufzeit);
 
-    final annuitaet = investition * (qHochN * (q - 1)) / (qHochN - 1);
+    final annuitaetNachschuessig = investition * (qHochN * (q - 1)) / (qHochN - 1);
 
-    return annuitaet;
+    // Umrechnung auf vorschüssig (Typ 1 = Zahlung am Jahresanfang)
+    final annuitaetVorschuessig = annuitaetNachschuessig / q;
+
+    return annuitaetVorschuessig;
   }
 
   /// Hilfsfunktion: Berechne Stromverbrauch für Wärmepumpe

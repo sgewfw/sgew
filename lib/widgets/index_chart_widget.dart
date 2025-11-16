@@ -69,9 +69,9 @@ class IndexChartWidget extends StatelessWidget {
           axisLine: const AxisLine(width: 0),
           majorTickLines: const MajorTickLines(size: 0),
           labelStyle: SuewagTextStyles.chartAxisLabel,
-          numberFormat: NumberFormat('#0.0'),
+          numberFormat: NumberFormat('#,##0.0', 'de_DE'),  // ← GEÄNDERT
           title: AxisTitle(
-            text: 'Index (${DestatisConstants.basisJahr}=100)',
+            text: 'Index',
             textStyle: SuewagTextStyles.labelSmall,
           ),
         ),
@@ -83,6 +83,7 @@ class IndexChartWidget extends StatelessWidget {
           textStyle: SuewagTextStyles.bodySmall,
           borderWidth: 1,
           borderColor: SuewagColors.divider,
+          decimalPlaces: 1,  // ← NEU HINZUFÜGEN
         ),
 
         // Legende
@@ -145,7 +146,7 @@ class IndexChartWidget extends StatelessWidget {
             borderColor: color,
             borderWidth: 2,
             markerSettings: MarkerSettings(
-              isVisible: indexDataMap.length == 1,
+              isVisible: true,
               height: 5,
               width: 5,
               shape: DataMarkerType.circle,
@@ -165,7 +166,7 @@ class IndexChartWidget extends StatelessWidget {
             color: color,
             width: 2.5,
             markerSettings: MarkerSettings(
-              isVisible: indexDataMap.length <= 2,
+              isVisible: true,
               height: 5,
               width: 5,
               shape: DataMarkerType.circle,

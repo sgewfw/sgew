@@ -14,7 +14,8 @@ class SzenarioRechnerEingabe {
 
   // Wärmenetz-spezifisch
   final double? anteilWaermeAusStrom; // 0.0 - 1.0 (z.B. 0.30 = 30%)
-
+  final double? waermeGasArbeitspreisCtKWh; // NEU: ct/kWh für Wärme aus Gas
+  final double? waermeStromArbeitspreisCtKWh; // NEU: ct/kWh für Wärme aus Strom
   // Investitionskosten
   final bool eigenInvestitionskostenNutzen;
   final double? investitionskostenAnpassungProzent; // -20 bis +20
@@ -32,6 +33,8 @@ class SzenarioRechnerEingabe {
     this.stromarbeitspreisCtKWh,
     this.stromGrundpreisEuroMonat,
     this.anteilWaermeAusStrom,
+    this.waermeGasArbeitspreisCtKWh,  // NEU
+    this.waermeStromArbeitspreisCtKWh,  // NEU
     this.eigenInvestitionskostenNutzen = false,
     this.investitionskostenAnpassungProzent,
     this.foerderungBeruecksichtigen = true,
@@ -48,6 +51,8 @@ class SzenarioRechnerEingabe {
     double? defaultStrompreis,
     double? defaultStromGrundpreis,
     double? defaultAnteilWaermeAusStrom,
+    double? defaultWaermeGasPreis,  // NEU
+    double? defaultWaermeStromPreis,  // NEU
   }) {
     return SzenarioRechnerEingabe(
       waermebedarf: waermebedarf,
@@ -57,6 +62,8 @@ class SzenarioRechnerEingabe {
       stromarbeitspreisCtKWh: defaultStrompreis,
       stromGrundpreisEuroMonat: defaultStromGrundpreis,
       anteilWaermeAusStrom: defaultAnteilWaermeAusStrom,
+      waermeGasArbeitspreisCtKWh: defaultWaermeGasPreis,  // NEU
+      waermeStromArbeitspreisCtKWh: defaultWaermeStromPreis,  // NEU
       eigenInvestitionskostenNutzen: false,
       investitionskostenAnpassungProzent: 0,
       foerderungBeruecksichtigen: true,
@@ -69,7 +76,10 @@ class SzenarioRechnerEingabe {
     double? stromarbeitspreisCtKWh,
     double? stromGrundpreisEuroMonat,
     double? anteilWaermeAusStrom,
+    double? waermeGasArbeitspreisCtKWh,  // NEU
+    double? waermeStromArbeitspreisCtKWh,  // NEU
     bool? eigenInvestitionskostenNutzen,
+
     double? investitionskostenAnpassungProzent,
     bool? foerderungBeruecksichtigen,
     double? beheizteFlaeche,
@@ -81,6 +91,9 @@ class SzenarioRechnerEingabe {
       stromarbeitspreisCtKWh: stromarbeitspreisCtKWh ?? this.stromarbeitspreisCtKWh,
       stromGrundpreisEuroMonat: stromGrundpreisEuroMonat ?? this.stromGrundpreisEuroMonat,
       anteilWaermeAusStrom: anteilWaermeAusStrom ?? this.anteilWaermeAusStrom,
+      waermeGasArbeitspreisCtKWh: waermeGasArbeitspreisCtKWh ?? this.waermeGasArbeitspreisCtKWh,  // NEU
+      waermeStromArbeitspreisCtKWh: waermeStromArbeitspreisCtKWh ?? this.waermeStromArbeitspreisCtKWh,  // NEU
+
       eigenInvestitionskostenNutzen: eigenInvestitionskostenNutzen ?? this.eigenInvestitionskostenNutzen,
       investitionskostenAnpassungProzent: investitionskostenAnpassungProzent ?? this.investitionskostenAnpassungProzent,
       foerderungBeruecksichtigen: foerderungBeruecksichtigen ?? this.foerderungBeruecksichtigen,
@@ -162,8 +175,8 @@ class SzenarioRechnerGrenzen {
   static const double strompreisSchritt = 0.5; // ct/kWh
 
   // Strom-Grundpreis
-  static const double stromGrundpreisMin = 0; // €/Monat
-  static const double stromGrundpreisMax = 50; // €/Monat
+  static const double stromGrundpreisMin = 5; // €/Monat
+  static const double stromGrundpreisMax = 25; // €/Monat
   static const double stromGrundpreisDefault = 9.0; // €/Monat
   static const double stromGrundpreisSchritt = 1.0; // €/Monat
 

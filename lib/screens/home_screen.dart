@@ -1,17 +1,23 @@
 // lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/suewag_colors.dart';
 import '../constants/suewag_text_styles.dart';
 import '../extensions/text_style_extensions.dart';
+import '../services/auth_service.dart';
+import '../services/energie_index_service.dart';
 import '../services/kostenvergleich_setup_service.dart';
 import '../widgets/waermeanteil_admin_dialog.dart';
+import 'admin/admin_login_screen.dart';
+import 'arbeitspreis_alt_screen.dart';
 import 'preisentwicklung_screen.dart';
 import 'arbeitspreis_screen.dart';
 import 'kostenvergleich_screen.dart';
 import 'admin/kostenvergleich_admin_home_screen.dart';
-
+import 'admin/ecarbix_admin_screen.dart'; // 🆕 Import hinzufügen
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -20,28 +26,36 @@ class HomeScreen extends StatelessWidget {
   static int _logoClickCount = 0;
   static DateTime? _lastClickTime;
 
-  void _onLogoTap(BuildContext context) {
-    final now = DateTime.now();
-
-    // Reset counter wenn mehr als 2 Sekunden vergangen
-    if (_lastClickTime == null ||
-        now.difference(_lastClickTime!) > const Duration(seconds: 2)) {
-      _logoClickCount = 0;
-    }
-
-    _logoClickCount++;
-    _lastClickTime = now;
-
-    // Nach 5 Klicks in 2 Sekunden: Admin-Menü
-    if (_logoClickCount >= 5) {
-      _logoClickCount = 0;
-      _showAdminMenu(context);
-    }
+  void _onLogoLongPress(BuildContext context) {
+    // Haptisches Feedback
+    HapticFeedback.mediumImpact();
+    _showAdminMenu(context);
   }
 
-// In home_screen.dart - im Admin-Dialog ergänzen:
+// In home_screen.dart - _showAdminMenu() Methode
 
-  void _showAdminMenu(BuildContext context) {
+
+
+  Future<void> _showAdminMenu(BuildContext context) async {
+    // 🔒 Prüfe ob User eingeloggt ist
+    final authService = AuthService();
+
+    if (!authService.isAuthenticated) {
+      // Nicht eingeloggt -> zeige Login Screen
+      final loginSuccess = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AdminLoginScreen(),
+        ),
+      );
+
+      // Falls Login abgebrochen oder fehlgeschlagen
+      if (loginSuccess != true) return;
+    }
+
+    // ✅ User ist eingeloggt -> zeige Admin-Menü
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -52,45 +66,118 @@ class HomeScreen extends StatelessWidget {
             const Text('Admin-Bereich'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.thermostat),
-              title: const Text('Wärmeanteil verwalten'),
-              subtitle: const Text('Wärmeanteile für Arbeitspreis'),
-              onTap: () {
-                Navigator.pop(context);
-                _showWaermeanteilDialog(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.compare_arrows),
-              title: const Text('Kostenvergleich verwalten'),
-              subtitle: const Text('Jahre und Stammdaten pflegen'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const KostenvergleichAdminHomeScreen(),
-                  ),
-                );
-              },
-            ),
-            const Divider(),
-            // 🆕 Setup-Button
-            ListTile(
-              leading: const Icon(Icons.refresh, color: Colors.orange),
-              title: const Text('Initial-Setup ausführen'),
-              subtitle: const Text('2025 Daten neu erstellen'),
-              onTap: () {
-                Navigator.pop(context);
-                _executeSetup(context);
-              },
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Logout Button oben
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: SuewagColors.quartzgrau10,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.person,
+                      size: 18,
+                      color: SuewagColors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        authService.currentUser?.email ?? 'Admin',
+                        style: SuewagTextStyles.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        await authService.signOut();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ Erfolgreich abgemeldet'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout, size: 16),
+                      label: const Text('Logout'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(),
+
+              // Wärmeanteil
+              ListTile(
+                leading: const Icon(Icons.thermostat),
+                title: const Text('Wärmeanteil verwalten'),
+                subtitle: const Text('Wärmeanteile für Arbeitspreis'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showWaermeanteilDialog(context);
+                },
+              ),
+
+              const Divider(),
+
+              // 🆕 CO₂-Preise verwalten
+              ListTile(
+                leading: Icon(Icons.co2, color: SuewagColors.verkehrsorange),
+                title: const Text('CO₂-Preise verwalten'),
+                subtitle: const Text('ECarbiX Monatswerte pflegen'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EcarbixAdminScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const Divider(),
+
+              // Kostenvergleich
+              ListTile(
+                leading: const Icon(Icons.compare_arrows),
+                title: const Text('Kostenvergleich verwalten'),
+                subtitle: const Text('Jahre und Stammdaten pflegen'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const KostenvergleichAdminHomeScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const Divider(),
+
+              // Initial-Setup
+              ListTile(
+                leading: const Icon(Icons.refresh, color: Colors.orange),
+                title: const Text('Initial-Setup ausführen'),
+                subtitle: const Text('2025 Daten neu erstellen'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _executeSetup(context);
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -126,6 +213,9 @@ class HomeScreen extends StatelessWidget {
 
     if (confirm != true) return;
 
+    // ✅ Context-Prüfung nach await
+    if (!context.mounted) return;
+
     // Loading
     showDialog(
       context: context,
@@ -139,6 +229,7 @@ class HomeScreen extends StatelessWidget {
       final setupService = KostenvergleichSetupService();
       await setupService.pruefeUndErstelleInitialDaten();
 
+      // ✅ Context-Prüfung nach await
       if (context.mounted) {
         Navigator.pop(context); // Loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +240,7 @@ class HomeScreen extends StatelessWidget {
         );
       }
     } catch (e) {
+      // ✅ Context-Prüfung nach await
       if (context.mounted) {
         Navigator.pop(context); // Loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
@@ -160,7 +252,6 @@ class HomeScreen extends StatelessWidget {
       }
     }
   }
-
   void _showWaermeanteilDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -187,7 +278,8 @@ class HomeScreen extends StatelessWidget {
           children: [
             // Logo - 🆕 Mit Tap-Handler für Admin-Zugang (5x klicken)
             GestureDetector(
-              onTap: () => _onLogoTap(context),
+              onLongPress: () => _onLogoLongPress(context),
+
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Image.asset(
@@ -235,11 +327,32 @@ class HomeScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
+
+// 🆕 Alte Arbeitspreis-Formel (2024-2027)
             _buildFeatureCard(
               context: context,
-              title: 'Arbeitspreisentwicklung',
+              title: 'Preisformel bis 2027',
               description:
-              'Interaktive Visualisierung unserer verwendeten Preisformel',
+              'Alte Preisformel mit monatlicher Promille-Gewichtung nach VDI-Richtlinie',
+              icon: Icons.history,
+              color: SuewagColors.indiablau,
+              available: true,
+              badge: null,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ArbeitspreisAltScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureCard(
+              context: context,
+              title: 'Preisformel ab 2028',
+              description:
+              'Neue Preisformel - Gaswärme und Stromwärme anteilig gewichtet',
               icon: Icons.calculate,
               color: SuewagColors.indiablau,
               available: true,
@@ -504,8 +617,6 @@ class HomeScreen extends StatelessWidget {
             'Sie haben Fragen zu den gezeigten Daten?',
             style: SuewagTextStyles.bodyMedium,
           ),
-
-
           const SizedBox(height: 12),
           Row(
             children: [
@@ -523,9 +634,32 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-
-
-
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 12),
+          // 🆕 Letztes Update anzeigen
+          FutureBuilder<DateTime?>(
+            future: EnergieIndexService().getLastUpdate('ERDGAS_GEWERBE'),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data != null) {
+                final lastUpdate = snapshot.data!;
+                final formatter = DateFormat('dd.MM.yyyy HH:00');
+                return Row(
+                  children: [
+                    Icon(Icons.update, color: SuewagColors.textSecondary, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Letzte Aktualisierung: ${formatter.format(lastUpdate)} Uhr',
+                      style: SuewagTextStyles.bodySmall.copyWith(
+                        color: SuewagColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
     );

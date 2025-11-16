@@ -1,6 +1,9 @@
 // lib/widgets/formel_erklaerung_widget.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:intl/intl.dart';
+import '../constants/destatis_constants.dart';
 import '../models/arbeitspreis_data.dart';
 import '../constants/suewag_colors.dart';
 import '../constants/suewag_text_styles.dart';
@@ -83,7 +86,7 @@ class AktuellerPreisWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                aktuellerPreis.preis.toStringAsFixed(2),
+                _formatGermanNumber(aktuellerPreis.preis, 2),
                 style: TextStyle(
                   fontSize: 48,
                   fontWeight: FontWeight.bold,
@@ -150,7 +153,7 @@ class AktuellerPreisWidget extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${aenderung > 0 ? '+' : ''}${aenderung.toStringAsFixed(2)} ct/kWh',
+                        '${aenderung > 0 ? '+' : ''}${_formatGermanNumber(aenderung.abs(), 2)} ct/kWh',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -201,8 +204,11 @@ class PreisformelWidget extends StatelessWidget {
           children: [
             Icon(Icons.calculate, color: SuewagColors.primary, size: 24),
             const SizedBox(width: 12),
-            const Expanded(
-              child: Text('Preisformel  Details', style: TextStyle(fontSize: 18)),
+            Expanded(
+              child: Text(
+                'Preisformel Details - ${isGas ? "Gas" : "Strom"}',
+                style: const TextStyle(fontSize: 18),
+              ),
             ),
           ],
         ),
@@ -222,19 +228,61 @@ class PreisformelWidget extends StatelessWidget {
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(
-                  'AP = $startpreis × (0,5 × K_Ø / $kBasis + 0,5 × M_Ø / $mBasis)',
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
+                    children: [
+                      TextSpan(text: 'APₙ = ${_formatGermanNumber(startpreis,2)} × (0,5 × K'),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: Transform.translate(
+                          offset: Offset(0, 3),
+                          child: Text(
+                            '∅',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 8,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextSpan(text: ' / ${_formatGermanNumber(kBasis,1)} + 0,5 × M'),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: Transform.translate(
+                          offset: Offset(0, 3),
+                          child: Text(
+                            '∅',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 8,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextSpan(text: ' / ${_formatGermanNumber(mBasis,1)})'),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              _buildDetailRow('Startpreis (AP₀)', '$startpreis ct/kWh (Basis Q3 2025)'),
+              _buildDetailRow('Startpreis (AP₀)', '${_formatGermanNumber(startpreis,2)} ct/kWh (Basis Q3 2025)'),
               _buildDetailRow('Kostenindex (K)', isGas ? 'Erdgas Gewerbe' : 'Strom Gewerbe'),
               _buildDetailRow('Marktindex (M)', isGas ? 'Wärmepreis' : 'Strom Haushalte'),
-              _buildDetailRow('K-Basis', '$kBasis (Referenzwert Q3 2025)'),
+              _buildDetailRow('K-Basis', '${_formatGermanNumber(kBasis,1)} (Referenzwert Q3 2025)'),
               _buildDetailRow('M-Basis', '$mBasis (Referenzwert Q3 2025)'),
-              _buildDetailRow('Gewichtung', '50% Kosten + 50% Markt'),
-              _buildDetailRow('Berechnungsperiode', 'Mittelwert aus n-4, n-3, n-2 Monaten'),
+              _buildDetailRow('Gewichtung', '50% Kostenelement + 50% Marktelement'),
+              _buildDetailRow('n', 'Lieferquartal'),
+              _buildDetailRow('∅', 'arithmetisches Mittel des jeweiligen Index des Zeitraumes vier Monate bis zwei Monate vor der Preisberechnung (n-4 bis n-2)'),
+
             ],
           ),
         ),
@@ -317,7 +365,7 @@ class PreisformelWidget extends StatelessWidget {
             ],
           ),
 
-
+SizedBox(height: 8,),
           // Kompakte Formel
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -339,16 +387,39 @@ class PreisformelWidget extends StatelessWidget {
                     ),
                     children: [
                       TextSpan(
-                        text: 'AP = ',
+                        text: 'APₙ = ',
                         style: TextStyle(fontWeight: FontWeight.bold, color: color),
                       ),
                       TextSpan(
-                        text: '$startpreis',
+                        text: '${_formatGermanNumber(startpreis, 2)}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const TextSpan(text: ' × ('),
                       TextSpan(
-                        text: '0,5 × K_Ø / K₀',
+                        text: '0,5 × K',
+                        style: TextStyle(
+                          color: SuewagColors.indiablau,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: Transform.translate(
+                          offset: const Offset(0, 3),
+                          child: Text(
+                            '∅',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              color: SuewagColors.indiablau,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' / K₀)',
                         style: TextStyle(
                           color: SuewagColors.indiablau,
                           fontWeight: FontWeight.bold,
@@ -356,7 +427,30 @@ class PreisformelWidget extends StatelessWidget {
                       ),
                       const TextSpan(text: ' + '),
                       TextSpan(
-                        text: '0,5 × M_Ø / M₀',
+                        text: '0,5 × M',
+                        style: TextStyle(
+                          color: SuewagColors.leuchtendgruen,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: Transform.translate(
+                          offset: const Offset(0, 3),
+                          child: Text(
+                            '∅',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                              color: SuewagColors.leuchtendgruen,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' / M₀)',
                         style: TextStyle(
                           color: SuewagColors.leuchtendgruen,
                           fontWeight: FontWeight.bold,
@@ -467,25 +561,25 @@ class ArbeitspreisErgebnisWidget extends StatelessWidget {
                     _buildCalcRow('Startpreis:', '$startpreis ct/kWh'),
                     _buildCalcRow(
                       'Kostenfaktor:',
-                      '${b.kMittelwert.toStringAsFixed(2)} ÷ ${b.kBasis} = ${kostenFaktor.toStringAsFixed(4)}',
+                      '${_formatGermanNumber(b.kMittelwert, 2)} ÷ ${b.kBasis} = ${_formatGermanNumber(kostenFaktor, 4)}',
                     ),
                     _buildCalcRow(
                       'Marktfaktor:',
-                      '${b.mMittelwert.toStringAsFixed(2)} ÷ ${b.mBasis} = ${marktFaktor.toStringAsFixed(4)}',
+                      '${_formatGermanNumber(b.mMittelwert, 2)} ÷ ${b.mBasis} = ${_formatGermanNumber(marktFaktor, 4)}',
                     ),
                     const Divider(height: 16),
                     _buildCalcRow(
                       'Rechnung:',
-                      '$startpreis × (0,5 × ${kostenFaktor.toStringAsFixed(4)} + 0,5 × ${marktFaktor.toStringAsFixed(4)})',
+                      '$startpreis × (0,5 × ${_formatGermanNumber(kostenFaktor, 4)} + 0,5 × ${_formatGermanNumber(marktFaktor, 4)})',
                     ),
                     _buildCalcRow(
                       '',
-                      '= $startpreis × ${(0.5 * kostenFaktor + 0.5 * marktFaktor).toStringAsFixed(4)}',
+                      '= $startpreis × ${_formatGermanNumber(0.5 * kostenFaktor + 0.5 * marktFaktor, 4)}',
                     ),
                     const Divider(height: 16),
                     _buildCalcRow(
                       'Arbeitspreis:',
-                      '${preis.toStringAsFixed(2)} ct/kWh',
+                      '${_formatGermanNumber(preis, 2)} ct/kWh',
                       isBold: true,
                     ),
                   ],
@@ -638,7 +732,7 @@ class ArbeitspreisErgebnisWidget extends StatelessWidget {
                   ),
                   const TextSpan(text: ' × ('),
                   TextSpan(
-                    text: '0,5 × ${b.kMittelwert.toStringAsFixed(1)} / ${b.kBasis}',
+                    text: '0,5 × ${_formatGermanNumber(b.kMittelwert, 1)} / ${b.kBasis}',
                     style: TextStyle(
                       color: SuewagColors.indiablau,
                       fontWeight: FontWeight.bold,
@@ -646,7 +740,7 @@ class ArbeitspreisErgebnisWidget extends StatelessWidget {
                   ),
                   const TextSpan(text: ' + '),
                   TextSpan(
-                    text: '0,5 × ${b.mMittelwert.toStringAsFixed(1)} / ${b.mBasis}',
+                    text: '0,5 × ${_formatGermanNumber(b.mMittelwert, 1)} / ${b.mBasis}',
                     style: TextStyle(
                       color: SuewagColors.leuchtendgruen,
                       fontWeight: FontWeight.bold,
@@ -682,7 +776,7 @@ class ArbeitspreisErgebnisWidget extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${preis.toStringAsFixed(2)}',
+                  _formatGermanNumber(preis, 2),
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -748,7 +842,11 @@ class ArbeitspreisErgebnisWidget extends StatelessWidget {
     return '${months[date.month - 1]} ${date.year}';
   }
 }
-
+/// Formatiere Zahl im deutschen Format
+String _formatGermanNumber(double value, int decimals) {
+  final formatter = NumberFormat('#,##0.${'0' * decimals}', 'de_DE');
+  return formatter.format(value);
+}
 /// Widget für Index-Berechnung (Schritt 1 oder 2) - kompakt
 class IndexBerechnungWidget extends StatelessWidget {
   final String typ; // 'gas' oder 'strom'
@@ -798,9 +896,9 @@ class IndexBerechnungWidget extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow(_formatMonth(b.monat1), wert1.toStringAsFixed(2)),
-            _buildDetailRow(_formatMonth(b.monat2), wert2.toStringAsFixed(2)),
-            _buildDetailRow(_formatMonth(b.monat3), wert3.toStringAsFixed(2)),
+            _buildDetailRow(_formatMonth(b.monat1), _formatGermanNumber(wert1, 2)),
+            _buildDetailRow(_formatMonth(b.monat2), _formatGermanNumber(wert2, 2)),
+            _buildDetailRow(_formatMonth(b.monat3), _formatGermanNumber(wert3, 2)),
             const Divider(height: 20),
             Container(
               padding: const EdgeInsets.all(12),
@@ -812,12 +910,12 @@ class IndexBerechnungWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '(${wert1.toStringAsFixed(1)} + ${wert2.toStringAsFixed(1)} + ${wert3.toStringAsFixed(1)}) ÷ 3',
+                    '(${_formatGermanNumber(wert1, 1)} + ${_formatGermanNumber(wert2, 1)} + ${_formatGermanNumber(wert3, 1)}) ÷ 3',
                     style: TextStyle(fontFamily: 'monospace', fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '= ${mittelwert.toStringAsFixed(2)}',
+                    '= ${_formatGermanNumber(mittelwert, 2)}',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 16,
@@ -903,14 +1001,28 @@ class IndexBerechnungWidget extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  titel,
-                  style: SuewagTextStyles.headline4.copyWith(
-                    color: color,
-                    fontSize: 15,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titel,
+                      style: SuewagTextStyles.headline4.copyWith(
+                        color: color,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      _getVariableCode(), // ← NEU!
+                      style: SuewagTextStyles.caption.copyWith(
+                        color: color.withOpacity(0.7),
+                        fontSize: 10,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
               InkWell(
                 onTap: () => _showIndexDetails(context),
                 borderRadius: BorderRadius.circular(20),
@@ -962,7 +1074,7 @@ class IndexBerechnungWidget extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  mittelwert.toStringAsFixed(2),
+                  _formatGermanNumber(mittelwert, 2),
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 20,
@@ -977,7 +1089,20 @@ class IndexBerechnungWidget extends StatelessWidget {
       ),
     );
   }
+  String _getVariableCode() {
+    final isGas = typ == 'gas';
+    final isKIndex = indexTyp == 'k';
 
+    if (isGas) {
+      return isKIndex
+          ? DestatisConstants.erdgasGewerbeVariable  // GP19-352222
+          : DestatisConstants.waermepreisVariable;    // CC13-77
+    } else {
+      return isKIndex
+          ? DestatisConstants.stromGewerbeVariable   // GP19-351113
+          : DestatisConstants.stromHaushalteVariable; // GP19-351112
+    }
+  }
   Widget _buildCompactMonth(String monat, double wert, Color color) {
     return Expanded(
       child: Container(
@@ -999,7 +1124,7 @@ class IndexBerechnungWidget extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              wert.toStringAsFixed(1),
+              _formatGermanNumber(wert, 1),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,

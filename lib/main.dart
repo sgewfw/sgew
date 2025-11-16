@@ -217,6 +217,8 @@ class FernwaermeApp extends StatelessWidget {
 
         // Dialog Theme
         dialogTheme: DialogThemeData(
+          backgroundColor: Colors.white, // ← Weiße Dialog-Hintergrundfarbe
+
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -270,7 +272,10 @@ class FernwaermeApp extends StatelessWidget {
       // ========================================
       // HOME SCREEN
       // ========================================
-      home: const HomeScreen(),
+      home: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: const HomeScreen(),
+      ),
     );
   }
 }

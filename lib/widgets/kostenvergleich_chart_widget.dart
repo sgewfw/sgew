@@ -50,33 +50,87 @@ class KostenvergleichChartWidget extends StatelessWidget {
           enabled: true,
           touchTooltipData: BarTouchTooltipData(
             tooltipRoundedRadius: 8,
-            tooltipPadding: const EdgeInsets.all(8),
+            tooltipPadding: const EdgeInsets.all(12),
+            maxContentWidth: 400,
+            tooltipMargin: 8, // Abstand zum Balken
+            direction: TooltipDirection.auto, // oder .top, .bottom, .left, .right
+
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               final ergebnis = ergebnisse[groupIndex];
+
+              // Prüfe ob Wärmepumpe-Szenario
+              final istWaermepumpe = ergebnis.szenarioId == 'waermepumpe';
+
+              // Für Wärmepumpe: summeOhneFoerderung, sonst summeMitFoerderung
+              final gesamtCtKwh = istWaermepumpe
+                  ? ergebnis.preisbestandteile.summeOhneFoerderung
+                  : ergebnis.preisbestandteile.summeMitFoerderung;
+
+              // Berechne entsprechende Jahreskosten
+              final gesamtEuroJahr = (gesamtCtKwh / 100) * ergebnis.waermebedarf;
+
               return BarTooltipItem(
-                '${ergebnis.szenarioBezeichnung}\n',
-                const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
+                '',
+                const TextStyle(color: Colors.white),
                 children: [
+                  // Header
                   TextSpan(
-                    text: 'Gesamt: ${ergebnis.preisbestandteile.summeMitFoerderung.toStringAsFixed(2)} ct/kWh\n',
+                    text: '${ergebnis.szenarioBezeichnung}\n',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  TextSpan(
+                    text: 'Bezogen auf ${_formatDeutscheZahl(ergebnis.waermebedarf , 0)} kWh/a\n\n',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+
+                  // Gesamtkosten
+                  TextSpan(
+                    text: istWaermepumpe
+                        ? 'Gesamtkosten (inkl. Kapitalkosten ohne Förderung)\n'
+                        : 'Gesamtkosten (mit Förderung)\n',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
-                      fontWeight: FontWeight.normal,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
-                  if (ergebnis.preisbestandteile.zusaetzlicheKapitalkostenOhneFoerderung > 0)
-                    TextSpan(
-                      text: 'Ohne Förderung: ${ergebnis.preisbestandteile.summeOhneFoerderung.toStringAsFixed(2)} ct/kWh',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                      ),
+                  TextSpan(
+                    text: '${_formatDeutscheZahl(gesamtCtKwh, 2)} ct/kWh  ',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  TextSpan(
+                    text: '(${_formatDeutscheZahl(gesamtEuroJahr, 2)} €/a)\n\n',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                    ),
+                  ),
+
+                  // Einzelpositionen Header
+                  TextSpan(
+                    text: 'Preisbestandteile:\n',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  // Einzelpositionen - dynamisch aus Segmenten
+                  ..._erstelleSegmentZeilen(ergebnis),
                 ],
               );
             },
@@ -104,18 +158,29 @@ class KostenvergleichChartWidget extends StatelessWidget {
               },
             ),
           ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toStringAsFixed(0),
-                  style: SuewagTextStyles.caption.copyWith(fontSize: 9),
-                );
-              },
+            leftTitles: AxisTitles(
+              axisNameWidget: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'ct/kWh (netto)',
+                  style: SuewagTextStyles.caption.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              axisNameSize: 50,
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    value.toStringAsFixed(0),
+                    style: SuewagTextStyles.caption.copyWith(fontSize: 9),
+                  );
+                },
+              ),
             ),
-          ),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
@@ -136,6 +201,99 @@ class KostenvergleichChartWidget extends StatelessWidget {
         barGroups: _createBarGroups(),
       ),
     );
+  }
+  String _formatDeutscheZahl(double wert, int nachkommastellen) {
+    final parts = wert.toStringAsFixed(nachkommastellen).split('.');
+    final vorkomma = parts[0];
+    final nachkomma = nachkommastellen > 0 ? parts[1] : '';
+
+    String formatted = '';
+    int count = 0;
+    for (int i = vorkomma.length - 1; i >= 0; i--) {
+      if (count > 0 && count % 3 == 0) {
+        formatted = '.$formatted';
+      }
+      formatted = vorkomma[i] + formatted;
+      count++;
+    }
+
+    if (nachkommastellen > 0) {
+      formatted += ',$nachkomma';
+    }
+
+    return formatted;
+  }
+  List<TextSpan> _erstelleSegmentZeilen(KostenberechnungErgebnis ergebnis) {
+    final spans = <TextSpan>[];
+
+    for (final segment in ergebnis.preisbestandteile.segmente) {
+      // Berechne Euro-Kosten für dieses Segment
+      final euroKostenJahr = (segment.wert / 100) * ergebnis.waermebedarf;
+
+      // Punkt mit Farbe (als Symbol)
+      spans.add(
+        TextSpan(
+          text: '• ',
+          style: TextStyle(
+            color: segment.farbe.color,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+
+      // ALLES IN EINER ZEILE: Bezeichnung: Wert ct/kWh (Wert €/a)
+      spans.add(
+        TextSpan(
+          text: '${segment.farbe.bezeichnung}: ',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+          ),
+        ),
+      );
+
+      spans.add(
+        TextSpan(
+          text: '${_formatDeutscheZahl(segment.wert, 2)} ct/kWh ',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+
+      spans.add(
+        TextSpan(
+          text: '(${_formatDeutscheZahl(euroKostenJahr, 2)} €/a)',
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 9,
+          ),
+        ),
+      );
+
+      // Gestrichelt-Hinweis bei Bedarf
+      if (segment.typ == SegmentTyp.dashed) {
+        spans.add(
+          const TextSpan(
+            text: ' *',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 9,
+            ),
+          ),
+        );
+      }
+
+      spans.add(const TextSpan(text: '\n'));
+    }
+
+
+
+
+    return spans;
   }
 
   String _getSzenarioKurz(String bezeichnung) {

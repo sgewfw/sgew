@@ -44,7 +44,8 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
     );
   }
   Widget _buildDesktopLayout() {
-    return IntrinsicHeight(
+    return SizedBox(
+      height: 600, // 🆕 Feste Höhe statt IntrinsicHeight
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -63,7 +64,6 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
       ),
     );
   }
-
   Widget _buildMobileLayout() {
     return Column(
       children: [
@@ -162,66 +162,84 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
                     dataRowMinHeight: isMobile ? 36 : 48,
                     columns: [
                       DataColumn(
-                        label: Text(
-                          'Quartal',
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: isMobile ? 11 : 13,
+                        label: SizedBox(
+                          width: isMobile ? 50 : 110,  // ← NEU: Feste Breite
+                          child: Text(
+                            'Quartal',
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: isMobile ? 11 : 13,
+                            ),
                           ),
                         ),
                       ),
                       DataColumn(
-                        label: Text(
-                          isMobile ? 'Gas\n(yₙ)' : 'Anteil\nGas (yₙ)',
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: isMobile ? 11 : 13,
+                        label: SizedBox(
+                          width: isMobile ? 45 : 110,  // ← NEU: Mehr Platz
+                          child: Text(
+                            isMobile ? 'Gas\n(yₙ)' : 'Anteil\nGas (yₙ)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: isMobile ? 11 : 13,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.right,
-                        ),
-                        numeric: true,
-                      ),
-                      DataColumn(
-                        label: Text(
-                          isMobile ? 'Strom\n(1-yₙ)' : 'Anteil\nStrom (1-yₙ)',
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: isMobile ? 11 : 13,
-                          ),
-                          textAlign: TextAlign.right,
                         ),
                         numeric: true,
                       ),
                       DataColumn(
-                        label: Text(
-                          'AP\nGas',
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: isMobile ? 11 : 13,
+                        label: SizedBox(
+                          width: isMobile ? 45 : 110,  // ← NEU: Mehr Platz
+                          child: Text(
+                            isMobile ? 'Strom\n(1-yₙ)' : 'Anteil\nStrom (1-yₙ)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: isMobile ? 11 : 13,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.right,
                         ),
                         numeric: true,
                       ),
                       DataColumn(
-                        label: Text(
-                          'AP\nStrom',
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: isMobile ? 11 : 13,
+                        label: SizedBox(
+                          width: isMobile ? 50 : 110,  // ← NEU: Mehr Platz
+                          child: Text(
+                            'AP\nGas',
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: isMobile ? 11 : 13,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.right,
                         ),
                         numeric: true,
                       ),
                       DataColumn(
-                        label: Text(
-                          isMobile ? 'AP\nΣ' : 'AP\nGesamt',
-                          style: TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontSize: isMobile ? 11 : 13,
+                        label: SizedBox(
+                          width: isMobile ? 50 : 110,  // ← NEU: Mehr Platz
+                          child: Text(
+                            'AP\nStrom',
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: isMobile ? 11 : 13,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.right,
+                        ),
+                        numeric: true,
+                      ),
+                      DataColumn(
+                        label: SizedBox(
+                          width: isMobile ? 55 : 110,  // ← NEU: Mehr Platz
+                          child: Text(
+                            isMobile ? 'AP\nΣ' : 'AP\nGesamt',
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: isMobile ? 11 : 13,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                         numeric: true,
                       ),
@@ -250,63 +268,73 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
                             ),
                           ),
                           DataCell(
-                            Text(
-                              '${(preis.anteilGas * 100).toStringAsFixed(1).replaceAll('.', ',')}%',
-                              style: TextStyle(
-                                color: SuewagColors.erdgas,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                fontSize: isMobile ? 11 : 13,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              '${(preis.anteilStrom * 100).toStringAsFixed(1).replaceAll('.', ',')}%',
-                              style: TextStyle(
-                                color: SuewagColors.chartGewerbe,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                fontSize: isMobile ? 11 : 13,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              preis.gasArbeitspreis.toStringAsFixed(2).replaceAll('.', ','),
-                              style: TextStyle(
-                                color: SuewagColors.erdgas.withOpacity(0.6),
-                                fontSize: isMobile ? 11 : 13,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              preis.stromArbeitspreis.toStringAsFixed(2).replaceAll('.', ','),
-                              style: TextStyle(
-                                color: SuewagColors.chartGewerbe.withOpacity(0.6),
-                                fontSize: isMobile ? 11 : 13,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isMobile ? 4 : 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? SuewagColors.fasergruen.withOpacity(0.2)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                            Center(  // ← NEU
                               child: Text(
-                                preis.waermepreisGesamt.toStringAsFixed(2).replaceAll('.', ','),
+                                '${(preis.anteilGas * 100).toStringAsFixed(1).replaceAll('.', ',')}%',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: isMobile ? 12 : 15,
-                                  color: SuewagColors.fasergruen,
+                                  color: SuewagColors.erdgas,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontSize: isMobile ? 11 : 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Center(  // ← NEU
+                              child: Text(
+                                '${(preis.anteilStrom * 100).toStringAsFixed(1).replaceAll('.', ',')}%',
+                                style: TextStyle(
+                                  color: SuewagColors.chartGewerbe,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontSize: isMobile ? 11 : 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Center(  // ← NEU
+                              child: Text(
+                                preis.gasArbeitspreis.toStringAsFixed(2).replaceAll('.', ','),
+                                style: TextStyle(
+                                  color: SuewagColors.erdgas.withOpacity(0.6),
+                                  fontSize: isMobile ? 11 : 13,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Center(  // ← NEU
+                              child: Text(
+                                preis.stromArbeitspreis.toStringAsFixed(2).replaceAll('.', ','),
+                                style: TextStyle(
+                                  color: SuewagColors.chartGewerbe.withOpacity(0.6),
+                                  fontSize: isMobile ? 11 : 13,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Center(  // ← NEU
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isMobile ? 4 : 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? SuewagColors.fasergruen.withOpacity(0.2)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  preis.waermepreisGesamt.toStringAsFixed(2).replaceAll('.', ','),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 12 : 15,
+                                    color: SuewagColors.fasergruen,
+                                  ),
                                 ),
                               ),
                             ),
@@ -331,7 +359,7 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Formel: Wärmepreis = (yₙ × AP_Gas) + ((1-yₙ) × AP_Strom)',
+                  'Formel: AP Gesamt = (yₙ × AP_Gas) + ((1-yₙ) × AP_Strom)',
                   style: SuewagTextStyles.caption.copyWith(
                     fontStyle: FontStyle.italic,
                   ),
@@ -440,7 +468,7 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
                 Icon(Icons.show_chart, color: SuewagColors.fasergruen, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Wärmepreis-Entwicklung',
+                  'Arbeitspreis',
                   style: SuewagTextStyles.headline4.copyWith(fontSize: 16),
                 ),
                 const Spacer(),
@@ -459,17 +487,17 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
             runSpacing: 8,
             children: [
               _buildLegendItem(
-                'Gas-AP',
+                'Wärme aus Gas-AP',
                 SuewagColors.erdgas,
                 isDashed: true,
               ),
               _buildLegendItem(
-                'Strom-AP',
+                'Wärme aus Strom-AP',
                 SuewagColors.chartGewerbe,
                 isDashed: true,
               ),
               _buildLegendItem(
-                'Gewichtet',
+                'AP gewichtet',
                 SuewagColors.fasergruen,
                 isDashed: false,
               ),
@@ -608,6 +636,18 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
+            axisNameWidget: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Preis in ct/kWh netto',
+                style: SuewagTextStyles.caption.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: SuewagColors.textSecondary,
+                ),
+              ),
+            ),
+            axisNameSize: 50,
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 50,
@@ -619,28 +659,30 @@ class _WaermeTabWidgetState extends State<WaermeTabWidget> {
               },
             ),
           ),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          // 🆕 Bottom Titles für Quartale
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 35,
+              reservedSize: 32,
+              interval: 3, // Jedes Quartal (alle 3 x-Einheiten)
               getTitlesWidget: (value, meta) {
                 final index = (value / 3).floor();
-                final position = value % 3;
-                if (index >= 0 && index < widget.waermepreise.length && position == 1) {
+                if (index >= 0 && index < widget.waermepreise.length) {
+                  final preis = widget.waermepreise[index];
                   return Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      widget.waermepreise[index].bezeichnung,
+                      _formatQuartalKurz(preis.bezeichnung),
                       style: SuewagTextStyles.caption.copyWith(fontSize: 10),
                     ),
                   );
                 }
-                return const Text('');
+                return const SizedBox.shrink();
               },
             ),
           ),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(
           show: true,

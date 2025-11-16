@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/index_data.dart';
 import '../constants/destatis_constants.dart';
-
+import 'ecarbix_service.dart'; // 🆕
 /// Service für Energie-Index Daten von Destatis
 ///
 /// Holt Daten für:
@@ -24,6 +24,7 @@ import '../constants/destatis_constants.dart';
 class EnergieIndexService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  final EcarbixService _ecarbixService = EcarbixService(); // 🆕
   // ========================================
   // KONFIGURATION
   // ========================================
@@ -92,6 +93,14 @@ class EnergieIndexService {
     required String indexCode,
     bool forceRefresh = false,
   }) async {
+
+
+    // 🆕 ECARBIX verwendet eigenen Service
+    if (indexCode == DestatisConstants.ecarbixCode) {
+      print('🔄 [ENERGIE_INDEX] ECARBIX erkannt → delegiere an EcarbixService');
+      return await _ecarbixService.getEcarbixData(forceRefresh: forceRefresh);
+    }
+
     print('📖 [ENERGIE_INDEX] Lade Daten aus Firebase für $indexCode');
     print('🔍 [DEBUG] Firebase Collection: energie_indizes');
     print('🔍 [DEBUG] Document ID: $indexCode');
@@ -196,6 +205,12 @@ class EnergieIndexService {
 
   /// Hole letztes Update-Datum
   Future<DateTime?> getLastUpdate(String indexCode) async {
+    // 🆕 ECARBIX verwendet eigenen Service
+    if (indexCode == DestatisConstants.ecarbixCode) {
+      return await _ecarbixService.getLastUpdate();
+    }
+
+
     try {
       final doc = await _firestore
           .collection('energie_indizes')
@@ -213,6 +228,13 @@ class EnergieIndexService {
 
   /// Prüfe ob Daten verfügbar sind
   Future<bool> hasData(String indexCode) async {
+
+    // 🆕 ECARBIX verwendet eigenen Service
+    if (indexCode == DestatisConstants.ecarbixCode) {
+      return await _ecarbixService.hasData();
+    }
+
+
     try {
       final doc = await _firestore
           .collection('energie_indizes')
@@ -237,6 +259,15 @@ class EnergieIndexService {
     print('🔄 [ENERGIE_INDEX] IndexCode: $indexCode');
     print('🔄 [ENERGIE_INDEX] Months: $months');
     print('🔄 [ENERGIE_INDEX] Platform: ${kIsWeb ? "WEB (via CORS Proxy)" : "MOBILE (Direct API)"}');
+
+
+    // 🆕 ECARBIX verwendet eigenen Service
+    if (indexCode == DestatisConstants.ecarbixCode) {
+      print('🔄 [ENERGIE_INDEX] ECARBIX erkannt → delegiere an EcarbixService');
+      await _ecarbixService.refreshEcarbixData();
+      return;
+    }
+
 
     try {
       print('🔍 [DEBUG] Rufe _fetchIndexFromAPI auf...');
@@ -352,7 +383,7 @@ class EnergieIndexService {
         'variableCode': DestatisConstants.indexToVariable[indexCode],
         'lastUpdate': FieldValue.serverTimestamp(),
         'data': data.map((d) => d.toFirestore()).toList(),
-      });
+      }, SetOptions(merge: true));
 
       print('✅ [ENERGIE_INDEX] Daten in Firebase gespeichert');
     } catch (e) {
@@ -434,6 +465,7 @@ class EnergieIndexService {
   }
 
   /// Einzelner API Call (für ein Jahr oder kleinen Zeitraum)
+  /// Einzelner API Call (für ein Jahr oder kleinen Zeitraum)
   Future<List<IndexData>> _fetchIndexFromAPISingle({
     required String indexCode,
     int? months,
@@ -441,11 +473,11 @@ class EnergieIndexService {
     int? endYear,
   }) async {
     try {
-      final username = 'DE0G77Y443';
-      final password = 'nLZMwK424kvH';
+      // ✅ GEÄNDERT: Verwende Token statt Username/Password
+      final token = 'ea6b2ca396394a75a6d813abb5233e50';
 
-      if (username.isEmpty || password.isEmpty) {
-        throw Exception('Destatis Zugangsdaten nicht konfiguriert');
+      if (token.isEmpty) {
+        throw Exception('Destatis Token nicht konfiguriert');
       }
 
       // Hole Table und Variable Code
@@ -470,14 +502,14 @@ class EnergieIndexService {
       } else {
         throw Exception('Entweder months oder startYear/endYear müssen angegeben werden');
       }
-// Hole Klassifizierungs-Parameter
+
+      // Hole Klassifizierungs-Parameter
       final classifyingVariable = DestatisConstants.tableToClassifyingVariable[tableCode] ?? '';
       final classifyingKey = DestatisConstants.indexToClassifyingKey[indexCode] ?? '';
 
       print('🔵 [ENERGIE_INDEX] Zeitraum: ${calcStartDate.year}-${calcStartDate.month} bis ${calcEndDate.year}-${calcEndDate.month}');
       print('🔵 [ENERGIE_INDEX] Table: $tableCode, Variable: $variableCode');
       print('🔵 [ENERGIE_INDEX] Classifying: Variable="$classifyingVariable", Key="$classifyingKey"');
-
 
       final url = Uri.parse('$baseUrl/data/table');
       print('🔵 [ENERGIE_INDEX] URL: $url');
@@ -492,8 +524,8 @@ class EnergieIndexService {
         'timeslices': '',
         'regionalvariable': '',
         'regionalkey': '',
-        'classifyingvariable1': classifyingVariable,  // ← NEU!
-        'classifyingkey1':variableCode ,            // ← NEU!
+        'classifyingvariable1': classifyingVariable,
+        'classifyingkey1': variableCode,
         'classifyingvariable2': '',
         'classifyingkey2': '',
         'classifyingvariable3': '',
@@ -502,11 +534,12 @@ class EnergieIndexService {
         'language': 'de',
       };
 
+      // ✅ GEÄNDERT: Token im Header statt Username/Password
       final headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'username': username,
-        'password': password,
+        'username': token,  // Token als Username
+        'password': '',     // Leer bei Token-Auth
       };
 
       final response = await http.post(

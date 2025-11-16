@@ -18,7 +18,7 @@ class KostenvergleichInfoScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Informationen & Quellen',
+              'Infos',
               style: SuewagTextStyles.headline2,
             ),
             const SizedBox(width: 12),
@@ -63,12 +63,7 @@ class KostenvergleichInfoScreen extends StatelessWidget {
                   title: 'Prämissen',
                   icon: Icons.settings,
                   children: [
-                    _buildPraemisse(
-                      label: 'Anteil Abwärme',
-                      min: '30%',
-                      max: '100%',
-                      erlaeuterung: 'Mindestanteil gemäß Wärmeplanungsgesetz',
-                    ),
+
                     _buildPraemisse(
                       label: 'Wärmebedarf in kWh',
                       min: '5.000 kWh/a',
@@ -94,16 +89,21 @@ class KostenvergleichInfoScreen extends StatelessWidget {
                     _buildQuelle(
                       kategorie: 'Strompreis',
                       beschreibung:
-                      'Internetrecherche Wärmepumpentarif; Tarife ohne Bonus; Preis nach niedrigstem Preis sortiert, '
-                          'Mittelwertbildung des Grundpreises sowie des Arbeitspreises der 5 günstigsten Angebote',
-                      url: 'https://www.check24.de/heizstrom/waermepumpe/',
+                      'Internetrecherche Wärmepumpentarif Verivox: '
+                          'Durchschnittlicher Strompreis für Wärmepumpen pro Kilowattstunde des Vorjahres',
+                      url: 'https://www.verivox.de/heizstrom/waermepumpenstrom-preisentwicklung/',
                     ),
                     _buildQuelle(
                       kategorie: 'Wärmepreis',
                       beschreibung:
-                      'Veröffentlichter Wärmepreis des Fernwärmenetzes Schwalbach des 2. Quartals eines Jahres, '
-                          'Abwärmeanteil: Vorjahreswerte',
-                      url: 'https://www.suewag.com/energie/ihre-versorgung/fernwaermeversorgung',
+                      'Veröffentlichter Wärmepreis des Fernwärmenetzes Schwalbach des Vorjahres, ',
+                      url: 'https://www.suewag.com/erzeugung/ihre-versorgung/fernwaermeversorgung',
+                    ),
+                    _buildQuelle(
+                      kategorie: 'Abwärmeanteil',
+                      beschreibung:
+                      'Veröffentlichter Abwärmeanteil des Fernwärmenetzes Schwalbach des Vorjahres, ',
+                      url: 'https://www.suewag.com/erzeugung/ihre-versorgung/fernwaermeversorgung',
                     ),
                     _buildQuelle(
                       kategorie: 'Investitionskosten',
@@ -159,24 +159,7 @@ class KostenvergleichInfoScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
 
-                // Stand
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: SuewagColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Stand: November 2025',
-                      style: SuewagTextStyles.caption.copyWith(
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

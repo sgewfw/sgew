@@ -1,6 +1,7 @@
 // lib/screens/preisentwicklung_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/index_data.dart';
@@ -43,11 +44,107 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
 
   // View Mode: 'chart' oder 'table'
   String _viewMode = 'chart';
-
+  String _preisformelFilter = 'ALLE'; // 'ALLE', 'BIS_2027', 'AB_2028'
+  bool _showCO2Tab = false; // Separater Tab für CO₂
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+  Widget _buildPreisformelFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: SuewagColors.divider, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Preisformel: ',
+            style: SuewagTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Alle
+          ChoiceChip(
+            label: const Text('Alle'),
+            selected: _preisformelFilter == 'ALLE',
+            onSelected: (_) {
+              setState(() {
+                _preisformelFilter = 'ALLE';
+                _updateVisibleIndizes(); // 🆕
+              });
+            },
+            selectedColor: SuewagColors.primary,
+            labelStyle: TextStyle(
+              color: _preisformelFilter == 'ALLE' ? Colors.white : SuewagColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Bis Ende 2027
+          ChoiceChip(
+            label: const Text('Bis Ende 2027'),
+            selected: _preisformelFilter == 'BIS_2027',
+            onSelected: (_) {
+              setState(() {
+                _preisformelFilter = 'BIS_2027';
+                _updateVisibleIndizes(); // 🆕
+              });
+            },
+            selectedColor: SuewagColors.indiablau,
+            labelStyle: TextStyle(
+              color: _preisformelFilter == 'BIS_2027' ? Colors.white : SuewagColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Ab 2028
+          ChoiceChip(
+            label: const Text('Ab 2028'),
+            selected: _preisformelFilter == 'AB_2028',
+            onSelected: (_) {
+              setState(() {
+                _preisformelFilter = 'AB_2028';
+                _updateVisibleIndizes(); // 🆕
+              });
+            },
+            selectedColor: SuewagColors.leuchtendgruen,
+            labelStyle: TextStyle(
+              color: _preisformelFilter == 'AB_2028' ? Colors.white : SuewagColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🆕 Aktualisiere sichtbare Indizes basierend auf Preisformel-Filter
+  void _updateVisibleIndizes() {
+    final filteredIndizes = DestatisConstants.getFilteredIndizes(_preisformelFilter);
+
+    // Entferne CO₂ aus sichtbaren Indizes
+    final validIndizes = filteredIndizes
+        .where((code) => code != DestatisConstants.ecarbixCode)
+        .toSet();
+
+    // Setze nur die Indizes die auch Daten haben
+    _visibleIndizes = validIndizes.where((code) {
+      return _allIndexData[code]?.isNotEmpty ?? false;
+    }).toSet();
+
+    // Mindestens ein Index muss sichtbar sein
+    if (_visibleIndizes.isEmpty && validIndizes.isNotEmpty) {
+      _visibleIndizes = {validIndizes.first};
+    }
   }
 
   /// Lade alle Index-Daten
@@ -257,33 +354,541 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
     );
   }
 
-
   Widget _buildBody() {
     return Column(
       children: [
-        // Toggle Buttons für Indizes - zentriert mit max width
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1800),
-            child: _buildIndexToggles(),
-          ),
-        ),
+        // 🆕 Preisformel-Filter oben
+        _buildPreisformelFilter(),
 
-        // Content (Chart oder Tabelle)
+        // 🆕 Tab-Buttons für Indizes vs CO₂
+        _buildTabSelector(),
+
+        // Toggle Buttons für Indizes (nur wenn nicht CO₂-Tab)
+        if (!_showCO2Tab)
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1800),
+              child: _buildIndexToggles(),
+            ),
+          ),
+
+        // Content
         Expanded(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1800),
-              child: _viewMode == 'chart' ? _buildChartView() : _buildTableView(),
+              child: _showCO2Tab
+                  ? _buildCO2View()
+                  : (_viewMode == 'chart' ? _buildChartView() : _buildTableView()),
             ),
           ),
         ),
       ],
     );
   }
+  /// 🆕 Tab-Selector (Indizes vs CO₂)
+  Widget _buildTabSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: SuewagColors.divider, width: 1),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Indizes Tab
+          InkWell(
+            onTap: () => setState(() => _showCO2Tab = false),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: !_showCO2Tab ? SuewagColors.primary : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
+              ),
+              child: Text(
+                'Energie-Indizes',
+                style: SuewagTextStyles.headline4.copyWith(
+                  color: !_showCO2Tab ? SuewagColors.primary : SuewagColors.textSecondary,
+                  fontWeight: !_showCO2Tab ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
 
+          const SizedBox(width: 24),
+
+          // CO₂ Tab
+          InkWell(
+            onTap: () => setState(() => _showCO2Tab = true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: _showCO2Tab ? SuewagColors.verkehrsorange : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.co2,
+                    size: 20,
+                    color: _showCO2Tab ? SuewagColors.verkehrsorange : SuewagColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'CO₂-Preis (€/Tonne)',
+                    style: SuewagTextStyles.headline4.copyWith(
+                      color: _showCO2Tab ? SuewagColors.verkehrsorange : SuewagColors.textSecondary,
+                      fontWeight: _showCO2Tab ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  /// 🆕 Separate View für CO₂-Preis
+  Widget _buildCO2View() {
+    final co2Data = _allIndexData[DestatisConstants.ecarbixCode] ?? [];
+
+    if (co2Data.isEmpty) {
+      return const custom.EmptyStateWidget(
+        title: 'Keine CO₂-Daten verfügbar',
+        description: 'CO₂-Preisdaten werden automatisch von EEX geladen',
+        icon: Icons.co2,
+      );
+    }
+
+    final colorMap = {
+      DestatisConstants.ecarbixCode: SuewagColors.verkehrsorange,
+    };
+
+    // 🆕 Chart oder Tabelle basierend auf _viewMode
+    return _viewMode == 'chart'
+        ? _buildCO2ChartView(co2Data, colorMap)
+        : _buildCO2TableView(co2Data);
+  }
+
+  /// 🆕 CO₂ Chart View
+  Widget _buildCO2ChartView(List<IndexData> co2Data, Map<String, Color> colorMap) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Info-Box mit Quelle
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: SuewagColors.verkehrsorange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: SuewagColors.verkehrsorange),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: SuewagColors.verkehrsorange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'CO₂-Preise in €/Tonne',
+                        style: SuewagTextStyles.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 12),
+                // Quelle
+                Row(
+                  children: [
+                    Icon(Icons.link, color: SuewagColors.verkehrsorange, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Quelle: ',
+                      style: SuewagTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _openEEXLink(),
+                        child: Text(
+                          'EEX - European Energy Exchange',
+                          style: SuewagTextStyles.bodySmall.copyWith(
+                            color: SuewagColors.verkehrsorange,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      onPressed: () => _openEEXLink(),
+                      tooltip: 'EEX-Quelle öffnen',
+                      color: SuewagColors.verkehrsorange,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Chart
+          SizedBox(
+            height: 500,
+            child: IndexChartWidget(
+              indexDataMap: {DestatisConstants.ecarbixCode: co2Data},
+              indexColors: colorMap,
+              showBaseline: false,
+              chartType: 'line',
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Stats Card
+          _buildCO2StatsCard(co2Data),
+        ],
+      ),
+    );
+  }
+
+  /// 🆕 CO₂ Tabellen View
+  Widget _buildCO2TableView(List<IndexData> co2Data) {
+    // Sortiere nach Datum (neueste zuerst)
+    final sortedData = List<IndexData>.from(co2Data)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Info-Box mit Quelle (gleich wie Chart)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: SuewagColors.verkehrsorange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: SuewagColors.verkehrsorange),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: SuewagColors.verkehrsorange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'CO₂-Preis  in €/Tonne',
+                        style: SuewagTextStyles.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.link, color: SuewagColors.verkehrsorange, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Quelle: ',
+                      style: SuewagTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _openEEXLink(),
+                        child: Text(
+                          'EEX - European Energy Exchange',
+                          style: SuewagTextStyles.bodySmall.copyWith(
+                            color: SuewagColors.verkehrsorange,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      onPressed: () => _openEEXLink(),
+                      tooltip: 'EEX-Quelle öffnen',
+                      color: SuewagColors.verkehrsorange,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Tabelle
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: SuewagColors.divider),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: SuewagColors.verkehrsorange.withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Monat',
+                          style: SuewagTextStyles.tableHeader.withColor(
+                            SuewagColors.verkehrsorange,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'Preis (€/Tonne)',
+                          style: SuewagTextStyles.tableHeader.withColor(
+                            SuewagColors.verkehrsorange,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      const SizedBox(width: 48), // Für Link-Button
+                    ],
+                  ),
+                ),
+
+                // Rows
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: sortedData.length,
+                  itemBuilder: (context, index) {
+                    final data = sortedData[index];
+                    final backgroundColor = index.isEven
+                        ? SuewagColors.quartzgrau10
+                        : Colors.white;
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: SuewagColors.divider,
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Monat
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${_getMonthNameShort(data.date.month)} \'${data.date.year.toString().substring(2)}',
+                              style: SuewagTextStyles.tableCell,
+                            ),
+                          ),
+                          // Preis
+                          // Preis
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${_formatGermanNumber(data.value, 2)} €/t', // 🔥 Komma + €/t
+                              style: SuewagTextStyles.tableNumber.withColor(
+                                SuewagColors.verkehrsorange,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          // Link Button
+                          SizedBox(
+                            width: 48,
+                            child: IconButton(
+                              icon: const Icon(Icons.open_in_new, size: 16),
+                              onPressed: () => _openEEXLink(),
+                              tooltip: 'EEX-Quelle',
+                              color: SuewagColors.verkehrsorange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  /// Öffne EEX-Link
+  Future<void> _openEEXLink() async {
+    const eexUrl = 'https://www.eex.com/de/customised-solutions/agfw';
+
+    try {
+      final uri = Uri.parse(eexUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Konnte URL nicht öffnen');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler beim Öffnen: $e'),
+            backgroundColor: SuewagColors.erdbeerrot,
+          ),
+        );
+      }
+    }
+  }
+  /// Stats Card für CO₂
+  Widget _buildCO2StatsCard(List<IndexData> data) {
+    if (data.isEmpty) return const SizedBox.shrink();
+
+    final current = data.last;
+    final previous = data.length > 1 ? data[data.length - 2] : null;
+    final monthlyChange = previous != null
+        ? IndexData.calculateChange(previous, current)
+        : null;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: SuewagColors.verkehrsorange, width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: SuewagColors.verkehrsorange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.co2,
+                    color: SuewagColors.verkehrsorange,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ECarbiX',
+                        style: SuewagTextStyles.headline3,
+                      ),
+                      Text(
+                        '${_getMonthNameShort(current.date.month)} ${current.date.year}',
+                        style: SuewagTextStyles.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${current.value.toStringAsFixed(2)} €',
+                      style: SuewagTextStyles.numberLarge.withColor(
+                        SuewagColors.verkehrsorange,
+                      ),
+                    ),
+                    Text(
+                      'pro Tonne CO₂',
+                      style: SuewagTextStyles.caption,
+                    ),
+                    if (monthlyChange != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            monthlyChange >= 0
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward,
+                            size: 14,
+                            color: monthlyChange >= 0
+                                ? SuewagColors.erdbeerrot
+                                : SuewagColors.leuchtendgruen,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${monthlyChange >= 0 ? '+' : ''}${monthlyChange.toStringAsFixed(1)}%',
+                            style: SuewagTextStyles.caption.withColor(
+                              monthlyChange >= 0
+                                  ? SuewagColors.erdbeerrot
+                                  : SuewagColors.leuchtendgruen,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  /// Toggle Buttons für jeden Index
   /// Toggle Buttons für jeden Index
   Widget _buildIndexToggles() {
+    // 🆕 Filtere Indizes basierend auf Preisformel-Filter
+    final filteredIndizes = DestatisConstants.getFilteredIndizes(_preisformelFilter);
+
+    // 🆕 CO₂ niemals in Index-Toggles zeigen
+    final displayIndizes = filteredIndizes
+        .where((code) => code != DestatisConstants.ecarbixCode)
+        .toList();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -307,13 +912,13 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
             return Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: DestatisConstants.verfuegbareIndizes.entries.map((entry) {
-                final indexCode = entry.key;
+              children: displayIndizes.map((indexCode) {
+                final indexName = DestatisConstants.verfuegbareIndizes[indexCode]!;
                 final isVisible = _visibleIndizes.contains(indexCode);
                 final color = _getIndexColor(indexCode);
                 final icon = _getIndexIcon(indexCode);
                 final hasData = _allIndexData[indexCode]?.isNotEmpty ?? false;
-                final label = DestatisConstants.mobileLabels[indexCode] ?? entry.value;
+                final label = DestatisConstants.mobileLabels[indexCode] ?? indexName;
 
                 return SizedBox(
                   width: buttonWidth,
@@ -372,9 +977,8 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
               spacing: 8,
               runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: DestatisConstants.verfuegbareIndizes.entries.map((entry) {
-                final indexCode = entry.key;
-                final indexName = entry.value;
+              children: displayIndizes.map((indexCode) {
+                final indexName = DestatisConstants.verfuegbareIndizes[indexCode]!;
                 final isVisible = _visibleIndizes.contains(indexCode);
                 final color = _getIndexColor(indexCode);
                 final icon = _getIndexIcon(indexCode);
@@ -525,9 +1129,9 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
     final monthlyChange =
     previous != null ? IndexData.calculateChange(previous, current) : null;
 
-    // Berechne Quartal
-    final quarter = ((current.date.month - 1) ~/ 3) + 1;
-    final quarterText = 'Q$quarter ${current.date.year}';
+    // Berechne Monat
+    final monthNames = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    final monthText = '${monthNames[current.date.month - 1]} ${current.date.year}';
 
     return Card(
       elevation: 2,
@@ -542,7 +1146,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
           children: [
             // Quartal Überschrift
             Text(
-              quarterText,
+              monthText,
               style: SuewagTextStyles.caption.withColor(color).copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 11,
@@ -595,7 +1199,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
                           ),
                           const SizedBox(width: 2),
                           Text(
-                            '${monthlyChange >= 0 ? '+' : ''}${monthlyChange.toStringAsFixed(1)}%',
+                            '${monthlyChange >= 0 ? '+' : '-'}${_formatGermanNumber(monthlyChange.abs(), 1)}%',
                             style: SuewagTextStyles.caption.withColor(
                               monthlyChange >= 0
                                   ? SuewagColors.erdbeerrot
@@ -606,6 +1210,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
                       ),
                   ],
                 ),
+                const SizedBox(width: 12),
 
                 // Link Button
                 IconButton(
@@ -653,6 +1258,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
     final name = DestatisConstants.kurzNamen[indexCode] ??
         DestatisConstants.verfuegbareIndizes[indexCode] ??
         indexCode;
+    final nummer = DestatisConstants.indexToClassifyingKey[indexCode] ??"";
 
     final current = data.last;
     final previous = data.length > 1 ? data[data.length - 2] : null;
@@ -702,7 +1308,7 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    name,
+                    nummer,
                     style: SuewagTextStyles.headline4,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -723,11 +1329,11 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  current.value.toStringAsFixed(1),
+                  _formatGermanNumber(current.value, 1),
                   style: SuewagTextStyles.numberLarge.withColor(color),
                 ),
                 Text(
-                  'Aktuell',
+                  '${_getMonthNameShort(current.date.month)} \'${current.date.year.toString().substring(2)}',
                   style: SuewagTextStyles.caption,
                 ),
               ],
@@ -757,12 +1363,12 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${monthlyChange >= 0 ? '+' : ''}${monthlyChange.toStringAsFixed(1)}%',
+                              '${monthlyChange >= 0 ? '+' : '-'}${_formatGermanNumber(monthlyChange.abs(), 1)}%',
                               style: SuewagTextStyles.caption.withColor(
                                 monthlyChange >= 0
                                     ? SuewagColors.erdbeerrot
                                     : SuewagColors.leuchtendgruen,
-                              ),
+                              ).copyWith(fontSize: 10),
                             ),
                           ],
                         ),
@@ -817,7 +1423,19 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
       ),
     );
   }
-
+  /// Kurzer Monatsname (3 Buchstaben)
+  String _getMonthNameShort(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'
+    ];
+    return months[month - 1];
+  }
+  /// Formatiere Zahl im deutschen Format (1.234,5)
+  String _formatGermanNumber(double value, int decimals) {
+    final formatter = NumberFormat('#,##0.${'0' * decimals}', 'de_DE');
+    return formatter.format(value);
+  }
   /// Tabellen Ansicht (Monatsscharf)
   Widget _buildTableView() {
     // Filter nur sichtbare Indizes mit Daten
@@ -1030,6 +1648,13 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
     final backgroundColor =
     index.isEven ? SuewagColors.quartzgrau10 : Colors.white;
 
+    // 🆕 Hole alle sichtbaren Index-Codes für Spalten-Reihenfolge
+    final visibleData = Map.fromEntries(
+      _allIndexData.entries
+          .where((e) => _visibleIndizes.contains(e.key) && e.value.isNotEmpty),
+    );
+    final indexCodes = visibleData.keys.toList();
+
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -1045,16 +1670,15 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                '${_getMonthName(date.month)} ${date.year}',
+                '${_getMonthNameShort(date.month)} \'${date.year.toString().substring(2)}',
                 style: SuewagTextStyles.tableCell,
               ),
             ),
           ),
 
-          // Werte
-          ...values.entries.map((entry) {
-            final indexCode = entry.key;
-            final value = entry.value;
+          // Werte - in gleicher Reihenfolge wie Header
+          ...indexCodes.map((indexCode) {
+            final value = values[indexCode]; // 🔥 Kann null sein!
             final color = _getIndexColor(indexCode);
 
             return Expanded(
@@ -1062,9 +1686,13 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
-                  value.toStringAsFixed(1),
-                  style: SuewagTextStyles.tableNumber.withColor(color),
-                  textAlign: TextAlign.right,
+                  value != null
+                      ? _formatGermanNumber(value, 1)
+                      : '-', // 🔥 Strich wenn kein Wert
+                  style: SuewagTextStyles.tableNumber.withColor(
+                    value != null ? color : SuewagColors.textDisabled,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             );
@@ -1174,12 +1802,12 @@ class _PreisentwicklungScreenState extends State<PreisentwicklungScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${monthlyChange >= 0 ? '+' : ''}${monthlyChange.toStringAsFixed(1)}%',
+                        '${monthlyChange >= 0 ? '+' : '-'}${_formatGermanNumber(monthlyChange.abs(), 1)}%',
                         style: SuewagTextStyles.caption.withColor(
                           monthlyChange >= 0
                               ? SuewagColors.erdbeerrot
                               : SuewagColors.leuchtendgruen,
-                        ),
+                        ).copyWith(fontSize: 10),
                       ),
                     ],
                   ),

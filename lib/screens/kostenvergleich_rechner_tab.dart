@@ -30,14 +30,22 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
   @override
   void initState() {
     super.initState();
+
+    // Hole tatsächliche Werte aus den Stammdaten statt hardcoded
+    final wpSzenario = widget.stammdaten.szenarien['waermepumpe'];
+    final netzSzenario = widget.stammdaten.szenarien['waermenetzOhneUGS'];
+
     _eingabe = SzenarioRechnerEingabe.vonStammdaten(
-      waermebedarf: widget.stammdaten.grunddaten.heizenergiebedarf,
-      beheizteFlaeche: widget.stammdaten.grunddaten.beheizteFlaeche,
-      spezHeizenergiebedarf: widget.stammdaten.grunddaten.spezHeizenergiebedarf,
-      defaultJAZ: 3.0,
-      defaultStrompreis: 16.52,
-      defaultStromGrundpreis: 9.0,
-      defaultAnteilWaermeAusStrom: 0.30,
+      waermebedarf: widget.stammdaten.grunddaten.heizenergiebedarf.wert,
+      beheizteFlaeche: widget.stammdaten.grunddaten.beheizteFlaeche.wert,
+      spezHeizenergiebedarf: widget.stammdaten.grunddaten.spezHeizenergiebedarf.wert,
+      defaultJAZ: wpSzenario?.waermekosten.jahresarbeitszahl?.wert ?? 3.0,
+      defaultStrompreis: wpSzenario?.waermekosten.stromarbeitspreisCtKWh?.wert ?? 16.52,
+      defaultStromGrundpreis: wpSzenario?.waermekosten.stromGrundpreisEuroMonat?.wert ?? 9.0,
+      defaultAnteilWaermeAusStrom: 1.0 - (widget.stammdaten.grunddaten.anteilGaswaerme?.wert ?? 0.7),
+      defaultWaermeGasPreis: netzSzenario?.waermekosten.waermeGasArbeitspreisCtKWh?.wert,  // NEU
+      defaultWaermeStromPreis: netzSzenario?.waermekosten.waermeStromArbeitspreisCtKWh?.wert,  // NEU
+
     );
     _berechnen();
   }
@@ -61,15 +69,21 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
   }
 
   void _resetEingabe() {
+    final wpSzenario = widget.stammdaten.szenarien['waermepumpe'];
+    final netzSzenario = widget.stammdaten.szenarien['waermenetzOhneUGS'];
+
     setState(() {
       _eingabe = SzenarioRechnerEingabe.vonStammdaten(
-        waermebedarf: widget.stammdaten.grunddaten.heizenergiebedarf,
-        beheizteFlaeche: widget.stammdaten.grunddaten.beheizteFlaeche,
-        spezHeizenergiebedarf: widget.stammdaten.grunddaten.spezHeizenergiebedarf,
-        defaultJAZ: 3.0,
-        defaultStrompreis: 16.52,
-        defaultStromGrundpreis: 9.0,
-        defaultAnteilWaermeAusStrom: 0.30,
+        waermebedarf: widget.stammdaten.grunddaten.heizenergiebedarf.wert,
+        beheizteFlaeche: widget.stammdaten.grunddaten.beheizteFlaeche.wert,
+        spezHeizenergiebedarf: widget.stammdaten.grunddaten.spezHeizenergiebedarf.wert,
+        defaultJAZ: wpSzenario?.waermekosten.jahresarbeitszahl?.wert ?? 3.0,
+        defaultStrompreis: wpSzenario?.waermekosten.stromarbeitspreisCtKWh?.wert ?? 16.52,
+        defaultStromGrundpreis: wpSzenario?.waermekosten.stromGrundpreisEuroMonat?.wert ?? 9.0,
+        defaultAnteilWaermeAusStrom: 1.0 - (widget.stammdaten.grunddaten.anteilGaswaerme?.wert ?? 0.7),
+        defaultWaermeGasPreis: netzSzenario?.waermekosten.waermeGasArbeitspreisCtKWh?.wert,  // NEU
+        defaultWaermeStromPreis: netzSzenario?.waermekosten.waermeStromArbeitspreisCtKWh?.wert,  // NEU
+
       );
     });
     _berechnen();
@@ -106,11 +120,11 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
                       child: Column(
                         children: [
                           SizedBox(
-                            height: 600,
+                            height: 1005,
                             child: _buildChartCard(),
                           ),
-                          const SizedBox(height: 16),
-                          _buildErgebnisTabelle(),
+                          // const SizedBox(height: 16),
+                          // _buildErgebnisTabelle(),
                         ],
                       ),
                     ),
@@ -120,8 +134,8 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
                 _buildEingabeCard(),
                 const SizedBox(height: 16),
                 _buildChartCard(),
-                const SizedBox(height: 16),
-                _buildErgebnisTabelle(),
+                // const SizedBox(height: 16),
+                // _buildErgebnisTabelle(),
               ],
             ],
           ),
@@ -219,7 +233,7 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
             onChanged: (wert) => _updateEingabe(_eingabe.copyWith(jahresarbeitszahl: wert)),
             helperText: 'Nur für Wärmepumpe',
           ),
-
+          const Divider(),
           // Strompreis
           _buildSliderParameter(
             label: 'Stromarbeitspreis',
@@ -230,7 +244,7 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
             nachkommastellen: 2,
             onChanged: (wert) => _updateEingabe(_eingabe.copyWith(stromarbeitspreisCtKWh: wert)),
           ),
-
+          const Divider(),
           // Strom-Grundpreis
           _buildSliderParameter(
             label: 'Strom-Grundpreis',
@@ -258,41 +272,57 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
           ),
 
           const Divider(),
-          //
-          // // Investitionskosten-Anpassung
-          // SwitchListTile(
-          //   title: const Text('Eigene Investitionskosten'),
-          //   subtitle: const Text('Anpassung der Investitionskosten (±20%)'),
-          //   value: _eingabe.eigenInvestitionskostenNutzen,
-          //   onChanged: (wert) => _updateEingabe(
-          //     _eingabe.copyWith(
-          //       eigenInvestitionskostenNutzen: wert,
-          //       investitionskostenAnpassungProzent: wert ? 0 : null,
-          //     ),
-          //   ),
-          // ),
+// NEU: Arbeitspreis Wärme aus Gas
+          _buildSliderParameter(
+            label: 'Arbeitspreis Wärme aus Gas',
+            wert: _eingabe.waermeGasArbeitspreisCtKWh ??
+                (widget.stammdaten.szenarien['waermenetzOhneUGS']?.waermekosten.waermeGasArbeitspreisCtKWh?.wert ?? 5.0),
+            min: 4.0,
+            max: 25.0,
+            einheit: 'ct/kWh',
+            nachkommastellen: 2,
+            onChanged: (wert) => _updateEingabe(_eingabe.copyWith(waermeGasArbeitspreisCtKWh: wert)),
+            helperText: 'Nur für Wärmenetz',
+          ),
 
-          if (_eingabe.eigenInvestitionskostenNutzen) ...[
-            const SizedBox(height: 8),
-            _buildSliderParameter(
-              label: 'Investitionskosten-Anpassung',
-              wert: _eingabe.investitionskostenAnpassungProzent ?? 0,
-              min: SzenarioRechnerGrenzen.investAnpassungMin,
-              max: SzenarioRechnerGrenzen.investAnpassungMax,
-              einheit: '%',
-              nachkommastellen: 0,
-              onChanged: (wert) => _updateEingabe(
-                _eingabe.copyWith(investitionskostenAnpassungProzent: wert),
+// NEU: Arbeitspreis Wärme aus Strom
+          _buildSliderParameter(
+            label: 'Arbeitspreis Wärme aus Strom',
+            wert: _eingabe.waermeStromArbeitspreisCtKWh ??
+                (widget.stammdaten.szenarien['waermenetzOhneUGS']?.waermekosten.waermeStromArbeitspreisCtKWh?.wert ?? 16.52),
+            min: 4.0,
+            max: 15.0,
+            einheit: 'ct/kWh',
+            nachkommastellen: 2,
+            onChanged: (wert) => _updateEingabe(_eingabe.copyWith(waermeStromArbeitspreisCtKWh: wert)),
+  helperText: 'Nur für Wärmenetz',
+),
+          const Divider(),
+
+// Investitionskosten-Anpassung (immer sichtbar)
+          _buildSliderParameter(
+            label: 'Investitionskosten-Anpassung',
+            wert: _eingabe.investitionskostenAnpassungProzent ?? 0,
+            min: SzenarioRechnerGrenzen.investAnpassungMin,
+            max: SzenarioRechnerGrenzen.investAnpassungMax,
+            einheit: '%',
+            nachkommastellen: 0,
+            onChanged: (wert) => _updateEingabe(
+              _eingabe.copyWith(
+                eigenInvestitionskostenNutzen: true, // Automatisch aktivieren
+                investitionskostenAnpassungProzent: wert,
               ),
             ),
-          ],
+            helperText: 'Anpassung der Investitionskosten für alle Szenarien',
+          ),
+
 
           const Divider(),
 
           // Förderung
           SwitchListTile(
             title: const Text('Förderung berücksichtigen'),
-            subtitle: const Text('BEG/BEW-Förderung in Berechnung einbeziehen'),
+            subtitle: const Text('BEG-Förderung in Berechnung einbeziehen'),
             value: _eingabe.foerderungBeruecksichtigen,
             onChanged: (wert) => _updateEingabe(_eingabe.copyWith(foerderungBeruecksichtigen: wert)),
           ),
@@ -339,7 +369,7 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
           value: wert,
           min: min,
           max: max,
-          divisions: ((max - min) / (nachkommastellen == 0 ? 100 : 0.5)).round(),
+          divisions: _berechneDivisions(min, max, nachkommastellen),
           activeColor: SuewagColors.fasergruen,
           onChanged: onChanged,
         ),
@@ -355,7 +385,20 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
       ],
     );
   }
+  int _berechneDivisions(double min, double max, int nachkommastellen) {
+    final range = max - min;
 
+    if (nachkommastellen == 0) {
+      // Ganzzahlen: Jede Ganzzahl ist eine Division
+      return range.round();
+    } else if (nachkommastellen == 1) {
+      // 1 Nachkommastelle: Schritte von 0.1
+      return (range * 10).round();
+    } else {
+      // 2+ Nachkommastellen: Schritte von 0.5 oder kleiner
+      return (range * 2).round();
+    }
+  }
   Widget _buildChartCard() {
     if (_ergebnis == null) return const SizedBox.shrink();
 
@@ -374,14 +417,13 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
               Icon(Icons.bar_chart, color: SuewagColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Ihr Ergebnis',
+                'Szenariorechner - Wärmevollkostenpreis netto in ct / kWh',
                 style: SuewagTextStyles.headline4.copyWith(fontSize: 14),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(  // Use SizedBox with calculated height
-            height: 520,  // 600 - 16 (top padding) - 16 (bottom padding) - 20 (icon row) - 16 (spacing) - 12 (buffer)
+          Expanded(
             child: KostenvergleichChartWidget(
               ergebnisse: _ergebnis!.szenarien,
             ),
@@ -407,46 +449,6 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Günstigstes Highlight
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.emoji_events, color: Colors.green, size: 32),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Günstigstes für Ihre Parameter:',
-                        style: SuewagTextStyles.caption,
-                      ),
-                      Text(
-                        guenstigste.szenarioBezeichnung,
-                        style: SuewagTextStyles.headline4.copyWith(color: Colors.green),
-                      ),
-                      Text(
-                        '${guenstigste.waermevollkostenpreisNetto.toStringAsFixed(2)} €/MWh',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
           // Tabelle
           ...sortiert.map((e) {
             final istGuenstigste = e.szenarioId == guenstigste.szenarioId;

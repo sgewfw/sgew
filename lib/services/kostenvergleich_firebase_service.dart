@@ -194,18 +194,18 @@ class KostenvergleichFirebaseService {
     final fehler = <String>[];
 
     // Grunddaten prüfen
-    if (daten.grunddaten.beheizteFlaeche <= 0) {
+    if (daten.grunddaten.beheizteFlaeche.wert <= 0) {
       fehler.add('Beheizte Fläche muss größer 0 sein');
     }
-    if (daten.grunddaten.heizenergiebedarf <= 0) {
+    if (daten.grunddaten.heizenergiebedarf.wert <= 0) {
       fehler.add('Heizenergiebedarf muss größer 0 sein');
     }
 
     // Finanzierung prüfen
-    if (daten.finanzierung.zinssatz <= 0) {
+    if (daten.finanzierung.zinssatz.wert <= 0) {
       fehler.add('Zinssatz muss größer 0 sein');
     }
-    if (daten.finanzierung.laufzeitJahre <= 0) {
+    if (daten.finanzierung.laufzeitJahre.wert <= 0) {
       fehler.add('Laufzeit muss größer 0 sein');
     }
 
@@ -226,14 +226,14 @@ class KostenvergleichFirebaseService {
       final szenario = daten.szenarien[szenarioId]!;
 
       // Investitionskosten
-      if (szenario.investition.gesamtBrutto <= 0) {
-        fehler.add('${szenario.bezeichnung}: Investitionskosten fehlen');
+      if (szenario.investition.gesamtBrutto < 0) {
+        fehler.add('${szenario.bezeichnung}: Investitionskosten ungültig');
       }
 
       // Wärmekosten
       if (szenarioId == 'waermepumpe') {
         if (szenario.waermekosten.stromverbrauchKWh == null ||
-            szenario.waermekosten.stromverbrauchKWh! <= 0) {
+            szenario.waermekosten.stromverbrauchKWh!.wert <= 0) {
           fehler.add('${szenario.bezeichnung}: Stromverbrauch fehlt');
         }
         if (szenario.waermekosten.stromarbeitspreisCtKWh == null) {

@@ -55,37 +55,7 @@ class _KostenvergleichDetailTableMobileState extends State<KostenvergleichDetail
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
-        // Header
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: SuewagColors.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Jahreskostenvergleich',
-                style: SuewagTextStyles.headline4,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Wärmekosten Einfamilienhaus Bestand',
-                style: SuewagTextStyles.bodyMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Stand: ${_formatiereDatum()} - Kostenvergleich auf Basis folgender Kennzahlen des Vorjahres',
-                style: SuewagTextStyles.caption.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+
 
         // Tabs für Szenarien
         Container(
@@ -116,7 +86,8 @@ class _KostenvergleichDetailTableMobileState extends State<KostenvergleichDetail
           ),
         ),
         const SizedBox(height: 16),
-
+        _buildAnnahmenBanner(),
+        const SizedBox(height: 16),
         // PageView mit Szenarien
         Expanded(
           child: PageView.builder(
@@ -131,6 +102,94 @@ class _KostenvergleichDetailTableMobileState extends State<KostenvergleichDetail
           ),
         ),
       ],
+    );
+  }
+  Widget _buildAnnahmenBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: SuewagColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: SuewagColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline,
+                color: SuewagColors.indiablau,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Standardannahmen',
+                style: SuewagTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: SuewagColors.indiablau,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              _buildAnnahmeChip(
+                'Zinssatz: ${_formatiereDeutsch(widget.stammdaten.finanzierung.zinssatz.wert, 2)} %',
+                widget.stammdaten.finanzierung.zinssatz.quelle,
+              ),
+              _buildAnnahmeChip(
+                'Abwärme: ${_formatiereDeutsch((1 - widget.stammdaten.grunddaten.anteilGaswaerme.wert) * 100, 0)} %',
+                widget.stammdaten.grunddaten.anteilGaswaerme.quelle,
+              ),
+              _buildAnnahmeChip(
+                'Strom WP: ${_formatiereDeutsch(widget.stammdaten.szenarien['waermepumpe']?.waermekosten.stromarbeitspreisCtKWh?.wert ?? 0, 2)} ct/kWh',
+                widget.stammdaten.szenarien['waermepumpe']?.waermekosten.stromarbeitspreisCtKWh?.quelle ??
+                    const QuellenInfo(titel: 'Strompreis', beschreibung: 'k.A.'),
+              ),
+              _buildAnnahmeChip(
+                'Wärme Gas: ${_formatiereDeutsch(widget.stammdaten.szenarien['waermenetzOhneUGS']?.waermekosten.waermeGasArbeitspreisCtKWh?.wert ?? 0, 4)} ct/kWh',
+                widget.stammdaten.szenarien['waermenetzOhneUGS']?.waermekosten.waermeGasArbeitspreisCtKWh?.quelle ??
+                    const QuellenInfo(titel: 'Wärmepreis Gas', beschreibung: 'k.A.'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnnahmeChip(String text, QuellenInfo quelle) {
+    return InkWell(
+      onTap: () => _zeigeQuelle(quelle),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: SuewagColors.divider),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: SuewagTextStyles.caption.copyWith(
+                fontSize: 10,
+                color: SuewagColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.info_outline,
+              size: 10,
+              color: SuewagColors.primary.withOpacity(0.6),
+            ),
+          ],
+        ),
+      ),
     );
   }
   String _formatiereDatum() {

@@ -6,6 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Hardcoded Admin E-Mail
+  static const String adminEmail = 'klemmerro@gmail.com';
+
   // Aktueller User Stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -14,6 +17,11 @@ class AuthService {
 
   // Ist User eingeloggt?
   bool get isAuthenticated => _auth.currentUser != null;
+
+  // Ist aktueller User Admin?
+  bool get isAdmin => 
+      _auth.currentUser != null && 
+      _auth.currentUser!.email?.toLowerCase() == adminEmail.toLowerCase();
 
   /// Login mit Email & Passwort
   Future<User?> signInWithEmailAndPassword(String email, String password) async {

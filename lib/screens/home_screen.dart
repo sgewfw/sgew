@@ -18,6 +18,7 @@ import 'arbeitspreis_screen.dart';
 import 'kostenvergleich_screen.dart';
 import 'admin/kostenvergleich_admin_home_screen.dart';
 import 'admin/ecarbix_admin_screen.dart'; // 🆕 Import hinzufügen
+import 'main_tab_screen.dart'; // 🆕 Tab Screen mit Karte/News/FAQ
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -384,6 +385,28 @@ class HomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const KostenvergleichScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // 🆕 NEU: Fernwärme-Karte
+            _buildFeatureCard(
+              context: context,
+              title: 'Fernwärme-Karte',
+              description:
+              'Interaktive Karte zur Bedarfsabfrage - sehen Sie Bestandsgebiete und melden Sie Ihr Interesse an',
+              icon: Icons.map,
+              color: SuewagColors.leuchtendgruen,
+              available: true,
+              badge: 'NEU',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MainTabScreen(),
                   ),
                 );
               },

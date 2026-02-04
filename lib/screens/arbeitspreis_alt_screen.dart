@@ -122,7 +122,7 @@ class _ArbeitspreisAltScreenState extends State<ArbeitspreisAltScreen>
         children: [
           const Expanded(
             child: Text(
-              'Preisformel bis 31.12.2027',
+              'Formel bis 2027',
               style: SuewagTextStyles.headline2,
             ),
           ),
@@ -199,9 +199,15 @@ class _ArbeitspreisAltScreenState extends State<ArbeitspreisAltScreen>
                     ),
                   ),
                 ] else ...[
-                  _buildChartCard(),
+                  SizedBox(
+                    height: 350,
+                    child: _buildChartCard(),
+                  ),
                   const SizedBox(height: 16),
-                  _buildJahresTabelleCard(),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.4,  // 40% der Bildschirmhöhe
+                    child: _buildJahresTabelleCard(),
+                  ),
                 ],
               ],
             ),

@@ -133,7 +133,10 @@ class _KostenvergleichRechnerTabState extends State<KostenvergleichRechnerTab> {
               ] else ...[
                 _buildEingabeCard(),
                 const SizedBox(height: 16),
-                _buildChartCard(),
+                SizedBox(
+                  height: 500,  // Feste Höhe für mobile Ansicht
+                  child: _buildChartCard(),
+                ),
                 // const SizedBox(height: 16),
                 // _buildErgebnisTabelle(),
               ],

@@ -1,75 +1,85 @@
-// lib/services/auth_service.dart
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
-/// Minimaler Auth Service für Admin-Login
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Hardcoded Admin E-Mail
-  static const String adminEmail = 'klemmerro@gmail.com';
+  // Cache für die Admin-Prüfung (damit nicht bei jedem Aufruf gelesen wird)
+  String? _cachedUid;
+  bool _cachedIsAdmin = false;
 
-  // Aktueller User Stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // Aktueller User
   User? get currentUser => _auth.currentUser;
-
-  // Ist User eingeloggt?
   bool get isAuthenticated => _auth.currentUser != null;
 
-  // Ist aktueller User Admin?
-  bool get isAdmin => 
-      _auth.currentUser != null && 
-      _auth.currentUser!.email?.toLowerCase() == adminEmail.toLowerCase();
+  /// Synchroner Check — nutzt den gecachten Wert.
+  /// Beim ersten Aufruf oder nach Login muss vorher checkAdmin() aufgerufen werden.
+  bool get isAdmin {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+    if (uid == _cachedUid) return _cachedIsAdmin;
+    // Cache ist veraltet — async Check nötig, gib erstmal false zurück
+    checkAdmin();
+    return false;
+  }
 
-  /// Login mit Email & Passwort
+  /// Prüft die Rolle aus Firestore und cached das Ergebnis
+  Future<bool> checkAdmin() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      _cachedUid = null;
+      _cachedIsAdmin = false;
+      return false;
+    }
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      final rolle = doc.data()?['rolle'] as String? ?? '';
+      _cachedUid = uid;
+      _cachedIsAdmin = rolle == 'Admin';
+      return _cachedIsAdmin;
+    } catch (e) {
+      if (kDebugMode) debugPrint('[AuthService] checkAdmin Fehler: $e');
+      return false;
+    }
+  }
+
   Future<User?> signInWithEmailAndPassword(String email, String password) async {
     try {
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final credential = await _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      // Fehler werden als null zurückgegeben
-      // UI kann dann entsprechende Fehlermeldung anzeigen
-      print('🔴 Login Fehler: ${e.code} - ${e.message}');
+      if (kDebugMode) debugPrint('[AuthService] Login Fehler: ${e.code}');
       return null;
     } catch (e) {
-      print('🔴 Login Fehler: $e');
+      if (kDebugMode) debugPrint('[AuthService] Login Fehler: $e');
       return null;
     }
   }
 
-  /// Logout
+  bool isSuewagEmail(String email) => email.trim().toLowerCase().endsWith('@suewag.de');
+
+  Future<User?> signInBegehung(String email, String password) async {
+    if (!isSuewagEmail(email)) return null;
+    return signInWithEmailAndPassword(email, password);
+  }
+
   Future<void> signOut() async {
-    try {
-      await _auth.signOut();
-      print('✅ Logout erfolgreich');
-    } catch (e) {
-      print('🔴 Logout Fehler: $e');
-      rethrow;
-    }
+    _cachedUid = null;
+    _cachedIsAdmin = false;
+    try { await _auth.signOut(); } catch (e) { rethrow; }
   }
 
-  /// Fehlercode zu deutscher Nachricht
   static String getErrorMessage(FirebaseAuthException e) {
     switch (e.code) {
-      case 'user-not-found':
-        return 'Kein Benutzer mit dieser E-Mail gefunden';
-      case 'wrong-password':
-        return 'Falsches Passwort';
-      case 'invalid-email':
-        return 'Ungültige E-Mail-Adresse';
-      case 'user-disabled':
-        return 'Dieser Account wurde deaktiviert';
-      case 'too-many-requests':
-        return 'Zu viele Anmeldeversuche. Bitte später erneut versuchen';
-      case 'invalid-credential':
-        return 'Ungültige Anmeldedaten';
-      default:
-        return 'Anmeldefehler: ${e.message}';
+      case 'user-not-found': return 'Kein Benutzer mit dieser E-Mail gefunden';
+      case 'wrong-password': return 'Falsches Passwort';
+      case 'invalid-email': return 'Ungültige E-Mail-Adresse';
+      case 'user-disabled': return 'Dieser Account wurde deaktiviert';
+      case 'too-many-requests': return 'Zu viele Anmeldeversuche. Bitte später erneut versuchen';
+      case 'invalid-credential': return 'Ungültige Anmeldedaten';
+      default: return 'Anmeldefehler: ${e.message}';
     }
   }
 }

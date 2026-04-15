@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sgew/services/kostenvergleich_setup_service.dart';
 
@@ -24,7 +25,7 @@ void main() async {
   // Deutsche Datumsformatierung initialisieren
   await initializeDateFormatting('de', null);
 
-  runApp(const FernwaermeApp());
+  runApp(const ProviderScope(child: FernwaermeApp()));
 }
 
 class FernwaermeApp extends StatelessWidget {

@@ -16,9 +16,12 @@ import 'arbeitspreis_alt_screen.dart';
 import 'preisentwicklung_screen.dart';
 import 'arbeitspreis_screen.dart';
 import 'kostenvergleich_screen.dart';
+import 'projektfinder_screen.dart'; // 🆕 Projektfinder
 import 'admin/kostenvergleich_admin_home_screen.dart';
 import 'admin/ecarbix_admin_screen.dart'; // 🆕 Import hinzufügen
+import 'admin/projektfinder_admin_screen.dart'; // 🆕 Projektfinder Admin
 import 'main_tab_screen.dart'; // 🆕 Tab Screen mit Karte/News/FAQ
+import '../features/begehungen/screens/begehung_home_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -160,6 +163,24 @@ class HomeScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const KostenvergleichAdminHomeScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const Divider(),
+
+              // 🆕 Projektfinder Admin
+              ListTile(
+                leading: Icon(Icons.folder_shared, color: SuewagColors.indiablau),
+                title: const Text('Projekte verwalten'),
+                subtitle: const Text('Import, Export und Bearbeitung'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProjektfinderAdminScreen(),
                     ),
                   );
                 },
@@ -392,6 +413,28 @@ class HomeScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
+            // 🆕 NEU: Projektfinder
+            _buildFeatureCard(
+              context: context,
+              title: 'Projektfinder',
+              description:
+              'Finden Sie Ihr Fernwärme-Projekt mit Ihrer Kundennummer und erhalten Sie alle relevanten Informationen',
+              icon: Icons.search,
+              color: SuewagColors.indiablau,
+              available: true,
+              badge: 'NEU',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProjektfinderScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
             // 🆕 NEU: Fernwärme-Karte
             _buildFeatureCard(
               context: context,
@@ -401,12 +444,34 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.map,
               color: SuewagColors.leuchtendgruen,
               available: true,
-              badge: 'NEU',
+              badge: null,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const MainTabScreen(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Mission Zero: Baustellenbegehungen
+            _buildFeatureCard(
+              context: context,
+              title: 'Begehungen',
+              description:
+              'Mission Zero – Baustellenbegehungen, Mängeltracking und Dashboards für Arbeitssicherheit',
+              icon: Icons.construction,
+              color: SuewagColors.verkehrsorange,
+              available: true,
+              badge: 'NEU',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BegehungHomeScreen(),
                   ),
                 );
               },

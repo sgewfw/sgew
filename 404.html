@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SGEW</title>
+    <script type="text/javascript">
+        // SPA-Fallback für GitHub Pages.
+        // Wandelt /sgew/kostenvergleich -> /sgew/?/kostenvergleich
+        // index.html dekodiert das wieder zurück, sodass go_router die Route bekommt.
+        //
+        // pathSegmentsToKeep = 1, weil GitHub Pages die App unter /sgew/ hostet
+        // (also ein Pfadsegment, das erhalten bleiben muss).
+        var pathSegmentsToKeep = 1;
+
+        var l = window.location;
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+    </script>
+</head>
+<body></body>
+</html>
